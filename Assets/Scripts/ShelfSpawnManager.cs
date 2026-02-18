@@ -23,6 +23,14 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private int spawnSeed = 20260218;
     [SerializeField] private bool randomizeOnEachRefresh = true;
 
+    [Header("Box Spawn")]
+    [SerializeField] private GameObject boxPrefab;
+    [SerializeField, Min(1)] private int boxesPerShelf = 4;
+    [SerializeField] private bool alignBoxRotationToShelf = true;
+    [SerializeField] private bool useBoxSortingLayer = true;
+    [SerializeField] private string boxSortingLayerName = "Default";
+    [SerializeField] private int boxSortingOrderStart = 0;
+
     [Header("UI")]
     [SerializeField] private bool showRegenerateButton = true;
     [SerializeField] private string regenerateButtonText = "重新产生货架";
@@ -35,28 +43,41 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private bool destroyLegacyShelvesAfterMigration;
     [SerializeField] private string legacyShelfNameKeyword = "shelf";
 
+    [Header("Debug Log")]
+    [SerializeField] private bool enableDebugLog = true;
+    [SerializeField] private bool enableDebugFileLog = true;
+
     private readonly List<GameObject> spawnedShelves = new List<GameObject>();
     private Transform runtimeShelfRoot;
+    private Transform runtimeBoxRoot;
     private Transform legacyShelfRoot;
     private int refreshSequence;
     private Button regenerateButton;
+    private const string LogTag = "ShelfSpawn";
 
     public bool AutoSpawnShelves => autoSpawnShelves;
 
     private void Awake()
     {
+        ConfigureLogger();
+        LogInfo("Awake start");
         EnsureShelfRoot();
         EnsureShelfSubRoots();
         TryAutoBindShelfPrefab();
+        TryAutoBindBoxPrefab();
         EnsureRegenerateButton();
+        LogInfo($"Awake end | shelfPrefab={(shelfPrefab != null ? shelfPrefab.name : "NULL")} | boxPrefab={(boxPrefab != null ? boxPrefab.name : "NULL")}");
     }
 
     public void RefreshShelves(int shelfCount)
     {
+        ConfigureLogger();
+        LogInfo($"RefreshShelves begin | inputCount={shelfCount} | autoSpawn={autoSpawnShelves}");
         EnsureRegenerateButton();
         EnsureShelfRoot();
         EnsureShelfSubRoots();
         TryAutoBindShelfPrefab();
+        TryAutoBindBoxPrefab();
 
         if (migrateSceneShelvesOnRefresh)
         {
@@ -67,28 +88,38 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (shelfPrefab == null)
         {
+            LogWarn("Refresh aborted: shelfPrefab is NULL. 请在ShelfSpawnManager里配置shelfPrefab。", this);
             return;
         }
 
         var cameraRef = Camera.main;
         if (cameraRef == null)
         {
+            LogWarn("Refresh aborted: Camera.main is NULL。", this);
             return;
         }
 
         var targetCount = shelfCount > 0 ? shelfCount : Mathf.Max(0, previewShelfCount);
         if (targetCount <= 0)
         {
+            LogWarn("Refresh aborted: target shelf count <= 0。");
             return;
         }
 
+        LogInfo($"Refresh config | targetCount={targetCount} | boxesPerShelf={boxesPerShelf} | sortingLayer={boxSortingLayerName} | sortingStart={boxSortingOrderStart}");
+
         var spawnPositions = GenerateShelfPositions(cameraRef, targetCount);
+        LogInfo($"Generated shelf positions: {spawnPositions.Count}");
         for (var i = 0; i < spawnPositions.Count; i++)
         {
             var shelf = Instantiate(shelfPrefab, spawnPositions[i], shelfPrefab.transform.rotation, runtimeShelfRoot);
             shelf.name = $"Shelf_{i + 1}";
             spawnedShelves.Add(shelf);
+            LogInfo($"Shelf spawned: {shelf.name} at {shelf.transform.position}", shelf);
+            SpawnBoxesForShelf(shelf);
         }
+
+        LogInfo($"RefreshShelves end | spawnedShelves={spawnedShelves.Count}");
     }
 
     public void RegenerateShelves()
@@ -130,6 +161,14 @@ public class ShelfSpawnManager : MonoBehaviour
             runtimeShelfRoot = runtime.transform;
         }
 
+        runtimeBoxRoot = shelfRoot.Find("RuntimeBoxes");
+        if (runtimeBoxRoot == null)
+        {
+            var runtimeBoxes = new GameObject("RuntimeBoxes");
+            runtimeBoxes.transform.SetParent(shelfRoot, false);
+            runtimeBoxRoot = runtimeBoxes.transform;
+        }
+
         legacyShelfRoot = shelfRoot.Find("LegacyShelves");
         if (legacyShelfRoot == null)
         {
@@ -163,6 +202,35 @@ public class ShelfSpawnManager : MonoBehaviour
                 return;
             }
         }
+    }
+
+    private void TryAutoBindBoxPrefab()
+    {
+        if (boxPrefab != null)
+        {
+            return;
+        }
+
+        var candidatePaths = new[]
+        {
+            "Prefabs/Box",
+            "Prefabs/box",
+            "Box",
+            "box"
+        };
+
+        for (var i = 0; i < candidatePaths.Length; i++)
+        {
+            var loaded = Resources.Load<GameObject>(candidatePaths[i]);
+            if (loaded != null)
+            {
+                boxPrefab = loaded;
+                LogInfo($"Auto bind boxPrefab success: {candidatePaths[i]}");
+                return;
+            }
+        }
+
+        LogWarn("Auto bind boxPrefab failed。请手动拖拽 boxPrefab 或放在 Resources/Prefabs/Box。", this);
     }
 
     private void MigrateLegacyShelves()
@@ -261,6 +329,29 @@ public class ShelfSpawnManager : MonoBehaviour
         for (var i = 0; i < runtimeShelfRoot.childCount; i++)
         {
             children.Add(runtimeShelfRoot.GetChild(i));
+        }
+
+        for (var i = 0; i < children.Count; i++)
+        {
+            if (Application.isPlaying)
+            {
+                Destroy(children[i].gameObject);
+            }
+            else
+            {
+                DestroyImmediate(children[i].gameObject);
+            }
+        }
+
+        if (runtimeBoxRoot == null)
+        {
+            return;
+        }
+
+        children.Clear();
+        for (var i = 0; i < runtimeBoxRoot.childCount; i++)
+        {
+            children.Add(runtimeBoxRoot.GetChild(i));
         }
 
         for (var i = 0; i < children.Count; i++)
@@ -563,5 +654,255 @@ public class ShelfSpawnManager : MonoBehaviour
         var halfX = Mathf.Max(0.25f, bounds.extents.x * scale);
         var halfY = Mathf.Max(0.25f, bounds.extents.y * scale);
         return new Vector2(halfX, halfY);
+    }
+
+    private void SpawnBoxesForShelf(GameObject shelf)
+    {
+        if (boxPrefab == null || shelf == null)
+        {
+            if (boxPrefab == null)
+            {
+                LogWarn($"Skip box spawn: boxPrefab is NULL on shelf {(shelf != null ? shelf.name : "NULL")}", this);
+            }
+
+            return;
+        }
+
+        if (!TryGetShelfAnchorRange(shelf.transform, out var shelfBottom, out var shelfTop))
+        {
+            LogWarn($"货架 {shelf.name} 缺少有效锚点，已跳过箱子堆叠。", shelf);
+            return;
+        }
+
+        LogInfo($"Spawn boxes on {shelf.name} | shelfBottom={shelfBottom} | shelfTop={shelfTop}", shelf);
+
+        var stackRoot = EnsureBoxRootNode(shelf.transform);
+
+        var nextBottom = shelfBottom;
+        var limitY = Mathf.Max(shelfBottom.y, shelfTop.y);
+        var spawnedBoxCount = 0;
+        for (var i = 0; i < Mathf.Max(1, boxesPerShelf); i++)
+        {
+            var rotation = alignBoxRotationToShelf ? shelf.transform.rotation : boxPrefab.transform.rotation;
+            var box = Instantiate(boxPrefab, nextBottom, rotation, stackRoot);
+            box.name = $"Box_{i + 1}";
+
+            if (!TryAlignBoxAndGetTop(box.transform, nextBottom, out var boxTop))
+            {
+                LogWarn($"箱子 {box.name} 缺少有效锚点，已按当前位置放置。", box);
+                break;
+            }
+
+            ApplySortingForBox(box.transform, i);
+            spawnedBoxCount++;
+            LogInfo($"Box spawned: {box.name} | pos={box.transform.position} | nextBottom={boxTop} | sorting={boxSortingOrderStart + Mathf.Clamp(i, 0, 3)}", box);
+
+            if (boxTop.y > limitY + 0.001f)
+            {
+                LogWarn($"货架 {shelf.name} 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。", shelf);
+            }
+
+            nextBottom = boxTop;
+        }
+
+        LogInfo($"Spawn boxes finished on {shelf.name} | spawned={spawnedBoxCount}", shelf);
+    }
+
+    private bool TryGetShelfAnchorRange(Transform shelfTransform, out Vector3 bottom, out Vector3 top)
+    {
+        if (TryGetAnchorPair(shelfTransform, out var bottomAnchor, out var topAnchor))
+        {
+            bottom = bottomAnchor.position;
+            top = topAnchor.position;
+            LogInfo($"Use shelf anchors from StackAnchorPoints: {shelfTransform.name}", shelfTransform.gameObject);
+            return true;
+        }
+
+        var renderer = shelfTransform.GetComponentInChildren<Renderer>(true);
+        if (renderer != null)
+        {
+            var bounds = renderer.bounds;
+            bottom = new Vector3(bounds.center.x, bounds.min.y, shelfTransform.position.z);
+            top = new Vector3(bounds.center.x, bounds.max.y, shelfTransform.position.z);
+            LogInfo($"Use shelf renderer bounds as anchors: {shelfTransform.name}", shelfTransform.gameObject);
+            return true;
+        }
+
+        var spriteRenderer = shelfTransform.GetComponentInChildren<SpriteRenderer>(true);
+        if (spriteRenderer != null)
+        {
+            var bounds = spriteRenderer.bounds;
+            bottom = new Vector3(bounds.center.x, bounds.min.y, shelfTransform.position.z);
+            top = new Vector3(bounds.center.x, bounds.max.y, shelfTransform.position.z);
+            LogInfo($"Use shelf sprite bounds as anchors: {shelfTransform.name}", shelfTransform.gameObject);
+            return true;
+        }
+
+        bottom = Vector3.zero;
+        top = Vector3.zero;
+        return false;
+    }
+
+    private bool TryAlignBoxAndGetTop(Transform boxTransform, Vector3 targetBottom, out Vector3 top)
+    {
+        if (TryGetAnchorPair(boxTransform, out var bottomAnchor, out var topAnchor))
+        {
+            var delta = targetBottom - bottomAnchor.position;
+            boxTransform.position += delta;
+            top = topAnchor.position;
+            LogInfo($"Use box anchors: {boxTransform.name}", boxTransform.gameObject);
+            return true;
+        }
+
+        var renderer = boxTransform.GetComponentInChildren<Renderer>(true);
+        if (renderer != null)
+        {
+            var deltaY = targetBottom.y - renderer.bounds.min.y;
+            boxTransform.position += new Vector3(0f, deltaY, 0f);
+            top = new Vector3(renderer.bounds.center.x, renderer.bounds.max.y, boxTransform.position.z);
+            LogInfo($"Use box renderer bounds: {boxTransform.name}", boxTransform.gameObject);
+            return true;
+        }
+
+        var spriteRenderer = boxTransform.GetComponentInChildren<SpriteRenderer>(true);
+        if (spriteRenderer != null)
+        {
+            var deltaY = targetBottom.y - spriteRenderer.bounds.min.y;
+            boxTransform.position += new Vector3(0f, deltaY, 0f);
+            top = new Vector3(spriteRenderer.bounds.center.x, spriteRenderer.bounds.max.y, boxTransform.position.z);
+            LogInfo($"Use box sprite bounds: {boxTransform.name}", boxTransform.gameObject);
+            return true;
+        }
+
+        top = targetBottom;
+        LogWarn($"No anchors or renderer found for box {boxTransform.name}", boxTransform.gameObject);
+        return false;
+    }
+
+    private bool TryGetAnchorPair(Transform root, out Transform bottom, out Transform top)
+    {
+        bottom = null;
+        top = null;
+
+        var anchorComp = root.GetComponentInChildren<StackAnchorPoints>(true);
+        if (anchorComp != null)
+        {
+            bottom = anchorComp.BottomAnchor;
+            top = anchorComp.TopAnchor;
+            if (bottom != null && top != null)
+            {
+                return true;
+            }
+        }
+
+        bottom = FindAnchorByName(root, "bottomanchor", "anchorbottom", "bottom");
+        top = FindAnchorByName(root, "topanchor", "anchortop", "top");
+        return bottom != null && top != null;
+    }
+
+    private Transform FindAnchorByName(Transform root, params string[] aliases)
+    {
+        var all = root.GetComponentsInChildren<Transform>(true);
+        for (var i = 0; i < all.Length; i++)
+        {
+            var n = all[i].name.Replace(" ", string.Empty).ToLowerInvariant();
+            for (var j = 0; j < aliases.Length; j++)
+            {
+                if (n == aliases[j])
+                {
+                    return all[i];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private Transform EnsureBoxRootNode(Transform shelfTransform)
+    {
+        EnsureShelfSubRoots();
+
+        var nodeName = $"{shelfTransform.name}_Boxes";
+        var existing = runtimeBoxRoot != null ? runtimeBoxRoot.Find(nodeName) : null;
+        if (existing != null)
+        {
+            existing.position = shelfTransform.position;
+            existing.rotation = shelfTransform.rotation;
+            existing.localScale = Vector3.one;
+            return existing;
+        }
+
+        var node = new GameObject(nodeName).transform;
+        if (runtimeBoxRoot != null)
+        {
+            node.SetParent(runtimeBoxRoot, false);
+        }
+
+        node.position = shelfTransform.position;
+        node.rotation = shelfTransform.rotation;
+        node.localScale = Vector3.one;
+        return node;
+    }
+
+    private void ApplySortingForBox(Transform boxTransform, int stackIndex)
+    {
+        var clampedOrder = boxSortingOrderStart + Mathf.Clamp(stackIndex, 0, 3);
+
+        var spriteRenderers = boxTransform.GetComponentsInChildren<SpriteRenderer>(true);
+        for (var i = 0; i < spriteRenderers.Length; i++)
+        {
+            if (useBoxSortingLayer && !string.IsNullOrWhiteSpace(boxSortingLayerName))
+            {
+                spriteRenderers[i].sortingLayerName = boxSortingLayerName;
+            }
+
+            spriteRenderers[i].sortingOrder = clampedOrder;
+        }
+
+        var renderers = boxTransform.GetComponentsInChildren<Renderer>(true);
+        for (var i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] is SpriteRenderer)
+            {
+                continue;
+            }
+
+            if (useBoxSortingLayer && !string.IsNullOrWhiteSpace(boxSortingLayerName))
+            {
+                renderers[i].sortingLayerName = boxSortingLayerName;
+            }
+
+            renderers[i].sortingOrder = clampedOrder;
+        }
+
+        LogInfo($"Apply sorting for {boxTransform.name} => layer={boxSortingLayerName}, order={clampedOrder}", boxTransform.gameObject);
+    }
+
+    private void ConfigureLogger()
+    {
+        GameDebugLogger.EnableConsoleLog = enableDebugLog;
+        GameDebugLogger.EnableFileLog = enableDebugFileLog;
+    }
+
+    private void LogInfo(string message, UnityEngine.Object context = null)
+    {
+        if (!enableDebugLog && !enableDebugFileLog)
+        {
+            return;
+        }
+
+        var ctx = context != null ? $" | ctx={context.name}" : string.Empty;
+        GameDebugLogger.Info(LogTag, message + ctx);
+    }
+
+    private void LogWarn(string message, UnityEngine.Object context = null)
+    {
+        if (!enableDebugLog && !enableDebugFileLog)
+        {
+            return;
+        }
+
+        var ctx = context != null ? $" | ctx={context.name}" : string.Empty;
+        GameDebugLogger.Warn(LogTag, message + ctx);
     }
 }

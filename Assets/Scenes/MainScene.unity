@@ -308,6 +308,12 @@ MonoBehaviour:
   spawnPlaneZ: 0
   spawnSeed: 20260218
   randomizeOnEachRefresh: 1
+  boxPrefab: {fileID: 3417449801406828113, guid: 3656210d32c17a7469e7eae2edbccf35, type: 3}
+  boxesPerShelf: 4
+  alignBoxRotationToShelf: 1
+  useBoxSortingLayer: 1
+  boxSortingLayerName: box
+  boxSortingOrderStart: 0
   showRegenerateButton: 1
   regenerateButtonText: "\u91CD\u65B0\u4EA7\u751F\u8D27\u67B6"
   regenerateButtonSize: {x: 220, y: 56}
@@ -316,6 +322,8 @@ MonoBehaviour:
   disableLegacyShelvesAfterMigration: 1
   destroyLegacyShelvesAfterMigration: 0
   legacyShelfNameKeyword: shelf
+  enableDebugLog: 1
+  enableDebugFileLog: 1
 --- !u!4 &1073249298
 Transform:
   m_ObjectHideFlags: 0
