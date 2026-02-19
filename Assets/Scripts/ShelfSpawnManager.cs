@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -25,7 +26,12 @@ public class ShelfSpawnManager : MonoBehaviour
 
     [Header("Box Spawn")]
     [SerializeField] private GameObject boxPrefab;
+    [SerializeField] private BoxGenerationManager boxGenerationManager;
     [SerializeField, Min(1)] private int boxesPerShelf = 4;
+    [SerializeField, Min(1)] private int configuredTotalShelfCount = 8;
+    [SerializeField, Min(0)] private int configuredEmptyShelfCount = 0;
+    [FormerlySerializedAs("configuredTotalBoxCount")]
+    [SerializeField, Min(1)] private int configuredFilledShelfCount = 6;
     [SerializeField] private bool alignBoxRotationToShelf = true;
     [SerializeField] private bool useBoxSortingLayer = true;
     [SerializeField] private string boxSortingLayerName = "Default";
@@ -54,13 +60,21 @@ public class ShelfSpawnManager : MonoBehaviour
     private int refreshSequence;
     private Button regenerateButton;
     private const string LogTag = "ShelfSpawn";
+    private bool printedBoxGenerationManagerMissingWarning;
 
     public bool AutoSpawnShelves => autoSpawnShelves;
+
+    public void SetBoxGenerationManager(BoxGenerationManager manager)
+    {
+        boxGenerationManager = manager;
+        printedBoxGenerationManagerMissingWarning = false;
+    }
 
     private void Awake()
     {
         ConfigureLogger();
         LogInfo("Awake start");
+        NormalizeConfiguredCounts();
         EnsureShelfRoot();
         EnsureShelfSubRoots();
         TryAutoBindShelfPrefab();
@@ -72,6 +86,7 @@ public class ShelfSpawnManager : MonoBehaviour
     public void RefreshShelves(int shelfCount)
     {
         ConfigureLogger();
+        NormalizeConfiguredCounts();
         LogInfo($"RefreshShelves begin | inputCount={shelfCount} | autoSpawn={autoSpawnShelves}");
         EnsureRegenerateButton();
         EnsureShelfRoot();
@@ -99,14 +114,71 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        var targetCount = shelfCount > 0 ? shelfCount : Mathf.Max(0, previewShelfCount);
+        var targetCount = shelfCount > 0 ? shelfCount : Mathf.Max(1, configuredTotalShelfCount);
         if (targetCount <= 0)
         {
             LogWarn("Refresh aborted: target shelf count <= 0。");
             return;
         }
 
-        LogInfo($"Refresh config | targetCount={targetCount} | boxesPerShelf={boxesPerShelf} | sortingLayer={boxSortingLayerName} | sortingStart={boxSortingOrderStart}");
+        var derivedTotalBoxCount = ResolveConfiguredTotalBoxCount(targetCount);
+        LogInfo($"Refresh config | targetCount={targetCount} | boxesPerShelf={boxesPerShelf} | fillShelfCount={configuredFilledShelfCount} | totalBoxes={derivedTotalBoxCount} | sortingLayer={boxSortingLayerName} | sortingStart={boxSortingOrderStart}");
+
+        List<List<GameManager.BoxColor>> colorLayout = null;
+        List<int> shelfBoxCounts = null;
+        List<int> grayCountsPerShelf = null;
+        if (boxGenerationManager != null)
+        {
+            var colorSeed = randomizeOnEachRefresh
+                ? unchecked((int)DateTime.UtcNow.Ticks) ^ spawnSeed ^ (targetCount * 127) ^ (boxesPerShelf * 911)
+                : spawnSeed ^ (targetCount * 127) ^ (boxesPerShelf * 911);
+            var colorRandom = new System.Random(colorSeed);
+            if (boxGenerationManager.TryGenerateColorLayoutByCounts(
+                targetCount,
+                Mathf.Clamp(configuredEmptyShelfCount, 0, Mathf.Max(0, targetCount - 1)),
+                derivedTotalBoxCount,
+                Mathf.Max(1, boxesPerShelf),
+                colorRandom,
+                out colorLayout,
+                out shelfBoxCounts,
+                out var error))
+            {
+                LogInfo($"Generate constrained color layout success | shelves={targetCount}");
+            }
+            else
+            {
+                LogWarn($"Generate constrained color layout failed: {error}");
+            }
+
+            if (shelfBoxCounts != null && boxGenerationManager.TryGenerateGrayCountsPerShelf(shelfBoxCounts, out grayCountsPerShelf, out var grayTarget, out var grayMessage))
+            {
+                if (!string.IsNullOrWhiteSpace(grayMessage))
+                {
+                    LogInfo($"Gray allocation adjusted: {grayMessage}");
+                }
+
+                var grayDistribution = grayCountsPerShelf != null ? string.Join(",", grayCountsPerShelf) : "none";
+                LogInfo($"Gray allocation success | percentage={boxGenerationManager.GrayPercentage:F2} | targetGray={grayTarget} | perShelf=[{grayDistribution}]");
+            }
+            else
+            {
+                LogWarn("Gray allocation failed, fallback to no-gray mode.");
+            }
+        }
+        else if (!printedBoxGenerationManagerMissingWarning)
+        {
+            printedBoxGenerationManagerMissingWarning = true;
+            LogWarn("BoxGenerationManager 未绑定，颜色分组与置灰配置将使用默认后备逻辑。请手动在 Inspector 绑定。", this);
+        }
+        else
+        {
+            shelfBoxCounts = BuildFallbackShelfBoxCounts(targetCount);
+        }
+
+        if (shelfBoxCounts == null || shelfBoxCounts.Count != targetCount)
+        {
+            shelfBoxCounts = BuildFallbackShelfBoxCounts(targetCount);
+        }
 
         var spawnPositions = GenerateShelfPositions(cameraRef, targetCount);
         LogInfo($"Generated shelf positions: {spawnPositions.Count}");
@@ -116,7 +188,11 @@ public class ShelfSpawnManager : MonoBehaviour
             shelf.name = $"Shelf_{i + 1}";
             spawnedShelves.Add(shelf);
             LogInfo($"Shelf spawned: {shelf.name} at {shelf.transform.position}", shelf);
-            SpawnBoxesForShelf(shelf);
+
+            var shelfColors = colorLayout != null && i < colorLayout.Count ? colorLayout[i] : null;
+            var shelfGrayCount = grayCountsPerShelf != null && i < grayCountsPerShelf.Count ? grayCountsPerShelf[i] : 0;
+            var shelfBoxCount = shelfBoxCounts != null && i < shelfBoxCounts.Count ? Mathf.Max(0, shelfBoxCounts[i]) : Mathf.Max(1, boxesPerShelf);
+            SpawnBoxesForShelf(shelf, shelfColors, shelfGrayCount, shelfBoxCount);
         }
 
         LogInfo($"RefreshShelves end | spawnedShelves={spawnedShelves.Count}");
@@ -124,7 +200,71 @@ public class ShelfSpawnManager : MonoBehaviour
 
     public void RegenerateShelves()
     {
-        RefreshShelves(0);
+        var fallbackCount = Mathf.Max(1, configuredTotalShelfCount);
+        var targetCount = spawnedShelves.Count > 0 ? spawnedShelves.Count : fallbackCount;
+        RefreshShelves(targetCount);
+    }
+
+    private void NormalizeConfiguredCounts()
+    {
+        configuredTotalShelfCount = Mathf.Max(1, configuredTotalShelfCount);
+        configuredEmptyShelfCount = Mathf.Clamp(configuredEmptyShelfCount, 0, configuredTotalShelfCount - 1);
+        configuredFilledShelfCount = Mathf.Max(1, configuredFilledShelfCount);
+    }
+
+    private int ResolveConfiguredTotalBoxCount(int targetShelfCount)
+    {
+        var shelfCount = Mathf.Max(1, targetShelfCount);
+        var emptyCount = Mathf.Clamp(configuredEmptyShelfCount, 0, shelfCount - 1);
+        var activeShelfCount = Mathf.Max(1, shelfCount - emptyCount);
+        var filledShelves = Mathf.Clamp(configuredFilledShelfCount, 1, activeShelfCount);
+        var totalBoxes = filledShelves * Mathf.Max(1, boxesPerShelf);
+        return totalBoxes;
+    }
+
+    private List<int> BuildFallbackShelfBoxCounts(int targetCount)
+    {
+        var counts = new List<int>(targetCount);
+        for (var i = 0; i < targetCount; i++)
+        {
+            counts.Add(0);
+        }
+
+        var emptyCount = Mathf.Clamp(configuredEmptyShelfCount, 0, Mathf.Max(0, targetCount - 1));
+        var activeCount = targetCount - emptyCount;
+        if (activeCount <= 0)
+        {
+            return counts;
+        }
+
+        var capacityPerShelf = Mathf.Max(1, boxesPerShelf);
+        var maxTotal = activeCount * capacityPerShelf;
+        var requestedTotalBoxes = ResolveConfiguredTotalBoxCount(targetCount);
+        var totalBoxes = Mathf.Min(requestedTotalBoxes, maxTotal);
+        if (totalBoxes <= 0)
+        {
+            return counts;
+        }
+
+        for (var i = 0; i < activeCount && i < counts.Count; i++)
+        {
+            counts[i] = 1;
+            totalBoxes--;
+        }
+
+        var cursor = 0;
+        while (totalBoxes > 0)
+        {
+            if (counts[cursor] < capacityPerShelf)
+            {
+                counts[cursor]++;
+                totalBoxes--;
+            }
+
+            cursor = (cursor + 1) % activeCount;
+        }
+
+        return counts;
     }
 
     private void EnsureShelfRoot()
@@ -310,6 +450,11 @@ public class ShelfSpawnManager : MonoBehaviour
 
             if (Application.isPlaying)
             {
+                spawnedShelves[i].transform.SetParent(null, true);
+            }
+
+            if (Application.isPlaying)
+            {
                 Destroy(spawnedShelves[i]);
             }
             else
@@ -335,6 +480,11 @@ public class ShelfSpawnManager : MonoBehaviour
         {
             if (Application.isPlaying)
             {
+                children[i].SetParent(null, true);
+            }
+
+            if (Application.isPlaying)
+            {
                 Destroy(children[i].gameObject);
             }
             else
@@ -356,6 +506,11 @@ public class ShelfSpawnManager : MonoBehaviour
 
         for (var i = 0; i < children.Count; i++)
         {
+            if (Application.isPlaying)
+            {
+                children[i].SetParent(null, true);
+            }
+
             if (Application.isPlaying)
             {
                 Destroy(children[i].gameObject);
@@ -656,7 +811,7 @@ public class ShelfSpawnManager : MonoBehaviour
         return new Vector2(halfX, halfY);
     }
 
-    private void SpawnBoxesForShelf(GameObject shelf)
+    private void SpawnBoxesForShelf(GameObject shelf, IReadOnlyList<GameManager.BoxColor> shelfColors, int shelfGrayCount, int targetBoxCount)
     {
         if (boxPrefab == null || shelf == null)
         {
@@ -677,11 +832,18 @@ public class ShelfSpawnManager : MonoBehaviour
         LogInfo($"Spawn boxes on {shelf.name} | shelfBottom={shelfBottom} | shelfTop={shelfTop}", shelf);
 
         var stackRoot = EnsureBoxRootNode(shelf.transform);
+        var boxCount = Mathf.Max(0, targetBoxCount);
+        if (boxCount <= 0)
+        {
+            return;
+        }
+
+        var clampedGrayCount = Mathf.Clamp(shelfGrayCount, 0, Mathf.Max(0, boxCount - 1));
 
         var nextBottom = shelfBottom;
         var limitY = Mathf.Max(shelfBottom.y, shelfTop.y);
         var spawnedBoxCount = 0;
-        for (var i = 0; i < Mathf.Max(1, boxesPerShelf); i++)
+        for (var i = 0; i < boxCount; i++)
         {
             var rotation = alignBoxRotationToShelf ? shelf.transform.rotation : boxPrefab.transform.rotation;
             var box = Instantiate(boxPrefab, nextBottom, rotation, stackRoot);
@@ -692,6 +854,10 @@ public class ShelfSpawnManager : MonoBehaviour
                 LogWarn($"箱子 {box.name} 缺少有效锚点，已按当前位置放置。", box);
                 break;
             }
+
+            var colorType = ResolveColorType(shelfColors, i);
+            var shouldGray = i < clampedGrayCount;
+            ApplyColorForBox(box.transform, colorType, shouldGray);
 
             ApplySortingForBox(box.transform, i);
             spawnedBoxCount++;
@@ -706,6 +872,95 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         LogInfo($"Spawn boxes finished on {shelf.name} | spawned={spawnedBoxCount}", shelf);
+    }
+
+    private GameManager.BoxColor ResolveColorType(IReadOnlyList<GameManager.BoxColor> shelfColors, int boxIndex)
+    {
+        if (shelfColors != null && boxIndex >= 0 && boxIndex < shelfColors.Count)
+        {
+            return shelfColors[boxIndex];
+        }
+
+        var enumColors = (GameManager.BoxColor[])Enum.GetValues(typeof(GameManager.BoxColor));
+        if (enumColors.Length == 0)
+        {
+            return GameManager.BoxColor.Red;
+        }
+
+        var idx = Mathf.Abs(boxIndex) % enumColors.Length;
+        return enumColors[idx];
+    }
+
+    private void ApplyColorForBox(Transform boxTransform, GameManager.BoxColor colorType, bool grayed)
+    {
+        var originalColor = ResolveDefaultDisplayColor(colorType);
+        if (boxGenerationManager != null)
+        {
+            boxGenerationManager.TryGetDisplayColor(colorType, out originalColor);
+        }
+
+        var displayColor = grayed && boxGenerationManager != null ? boxGenerationManager.GrayDisplayColor : originalColor;
+
+        var spriteRenderers = boxTransform.GetComponentsInChildren<SpriteRenderer>(true);
+        for (var i = 0; i < spriteRenderers.Length; i++)
+        {
+            spriteRenderers[i].color = displayColor;
+        }
+
+        var renderers = boxTransform.GetComponentsInChildren<Renderer>(true);
+        var propertyBlock = new MaterialPropertyBlock();
+        for (var i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] is SpriteRenderer)
+            {
+                continue;
+            }
+
+            renderers[i].GetPropertyBlock(propertyBlock);
+            var hasBaseColor = renderers[i].sharedMaterial != null && renderers[i].sharedMaterial.HasProperty("_BaseColor");
+            var hasColor = renderers[i].sharedMaterial != null && renderers[i].sharedMaterial.HasProperty("_Color");
+
+            if (hasBaseColor)
+            {
+                propertyBlock.SetColor("_BaseColor", displayColor);
+            }
+
+            if (hasColor)
+            {
+                propertyBlock.SetColor("_Color", displayColor);
+            }
+
+            renderers[i].SetPropertyBlock(propertyBlock);
+        }
+
+        var visualState = boxTransform.GetComponent<BoxVisualState>();
+        if (visualState == null)
+        {
+            visualState = boxTransform.gameObject.AddComponent<BoxVisualState>();
+        }
+
+        visualState.SetState(colorType, originalColor, displayColor, grayed);
+    }
+
+    private static Color ResolveDefaultDisplayColor(GameManager.BoxColor colorType)
+    {
+        switch (colorType)
+        {
+            case GameManager.BoxColor.Red:
+                return new Color(0.88f, 0.25f, 0.25f, 1f);
+            case GameManager.BoxColor.Blue:
+                return new Color(0.27f, 0.5f, 0.9f, 1f);
+            case GameManager.BoxColor.Green:
+                return new Color(0.28f, 0.74f, 0.38f, 1f);
+            case GameManager.BoxColor.Yellow:
+                return new Color(0.95f, 0.83f, 0.24f, 1f);
+            case GameManager.BoxColor.Purple:
+                return new Color(0.62f, 0.39f, 0.86f, 1f);
+            case GameManager.BoxColor.Orange:
+                return new Color(0.95f, 0.56f, 0.21f, 1f);
+            default:
+                return Color.white;
+        }
     }
 
     private bool TryGetShelfAnchorRange(Transform shelfTransform, out Vector3 bottom, out Vector3 top)

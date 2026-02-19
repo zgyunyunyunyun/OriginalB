@@ -159,6 +159,8 @@ MonoBehaviour:
   initialUndoToolCount: 1
   initialCatHintToolCount: 1
   shelfSpawnManager: {fileID: 1073249297}
+  boxGenerationManager: {fileID: 1757883259}
+  logBoxGenerationManagerMissing: 1
 --- !u!4 &299424432
 Transform:
   m_ObjectHideFlags: 0
@@ -298,7 +300,8 @@ MonoBehaviour:
   shelfPrefab: {fileID: 7884151283758860229, guid: 142ae4fdf325cdc4394b406dab00bcd4, type: 3}
   shelfRoot: {fileID: 2124350419}
   autoSpawnShelves: 1
-  previewShelfCount: 8
+  configuredTotalShelfCount: 8
+  configuredFilledShelfCount: 2
   viewportHorizontalPadding: 0.1
   viewportVerticalPadding: 0.25
   viewportInnerRadius: 0.05
@@ -309,6 +312,7 @@ MonoBehaviour:
   spawnSeed: 20260218
   randomizeOnEachRefresh: 1
   boxPrefab: {fileID: 3417449801406828113, guid: 3656210d32c17a7469e7eae2edbccf35, type: 3}
+  boxGenerationManager: {fileID: 0}
   boxesPerShelf: 4
   alignBoxRotationToShelf: 1
   useBoxSortingLayer: 1
@@ -334,6 +338,73 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.13760516, y: -0.2565496, z: 0.040123787}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1757883258
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1757883260}
+  - component: {fileID: 1757883259}
+  m_Layer: 0
+  m_Name: BoxGenerationManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1757883259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1757883258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cd6ea3617364cc4cb3a412625ad575f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorConfigs:
+  - colorType: 0
+    displayColor: {r: 0.88, g: 0.25, b: 0.25, a: 1}
+    enabled: 1
+  - colorType: 1
+    displayColor: {r: 0.27, g: 0.5, b: 0.9, a: 1}
+    enabled: 1
+  - colorType: 2
+    displayColor: {r: 0.28, g: 0.74, b: 0.38, a: 1}
+    enabled: 1
+  - colorType: 3
+    displayColor: {r: 0.95, g: 0.83, b: 0.24, a: 1}
+    enabled: 1
+  - colorType: 4
+    displayColor: {r: 0.62, g: 0.39, b: 0.86, a: 1}
+    enabled: 1
+  - colorType: 5
+    displayColor: {r: 0.95, g: 0.56, b: 0.21, a: 1}
+    enabled: 1
+  sameColorGroupSize: 4
+  maxGenerateAttempts: 96
+  grayPercentage: 0.475
+  grayDisplayColor: {r: 0.45, g: 0.45, b: 0.45, a: 1}
+--- !u!4 &1757883260
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1757883258}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.3776249, y: 0.4858572, z: 0.021389766}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -378,3 +449,4 @@ SceneRoots:
   - {fileID: 299424432}
   - {fileID: 1073249298}
   - {fileID: 2124350419}
+  - {fileID: 1757883260}

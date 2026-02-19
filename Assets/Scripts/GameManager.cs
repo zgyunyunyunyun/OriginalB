@@ -110,6 +110,10 @@ public class GameManager : MonoBehaviour
     [Header("Shelf Integration")]
     [SerializeField] private ShelfSpawnManager shelfSpawnManager;
 
+    [Header("Box Generation")]
+    [SerializeField] private BoxGenerationManager boxGenerationManager;
+    [SerializeField] private bool logBoxGenerationManagerMissing = true;
+
     private const string DailyDateKey = "GM_DailyDate";
     private const string DailyCountKey = "GM_DailyCount";
     private const string TotalPointsKey = "GM_TotalPoints";
@@ -118,6 +122,7 @@ public class GameManager : MonoBehaviour
     private readonly Dictionary<ToolType, int> toolInventory = new Dictionary<ToolType, int>();
     private readonly Stack<MoveRecord> moveHistory = new Stack<MoveRecord>();
     private int boxIdGenerator;
+    private bool printedBoxGenerationManagerMissingWarning;
 
     public GameState State { get; private set; } = GameState.Idle;
     public int LastHintShelfIndex { get; private set; } = -1;
@@ -309,19 +314,7 @@ public class GameManager : MonoBehaviour
         var normalizedDifficulty = Mathf.Clamp(difficulty, 1, 10);
         var shelfCount = 4 + normalizedDifficulty;
         var capacity = 8 + normalizedDifficulty;
-        var colorCount = Mathf.Clamp(2 + normalizedDifficulty / 2, 3, Enum.GetValues(typeof(BoxColor)).Length);
-        var tripleSets = 6 + normalizedDifficulty * 2;
-
-        var colorPool = new List<BoxColor>();
-        for (var i = 0; i < tripleSets; i++)
-        {
-            var color = (BoxColor)(i % colorCount);
-            colorPool.Add(color);
-            colorPool.Add(color);
-            colorPool.Add(color);
-        }
-
-        Shuffle(colorPool, rng);
+        var boxesPerShelf = Mathf.Min(4, capacity);
 
         var level = new LevelDefinition
         {
@@ -343,33 +336,82 @@ public class GameManager : MonoBehaviour
             });
         }
 
-        var cursor = 0;
-        while (cursor < colorPool.Count)
+        if (boxGenerationManager != null
+            && boxGenerationManager.TryGenerateColorLayout(shelfCount, boxesPerShelf, rng, out var shelfColorLayout, out _))
         {
-            var placed = false;
-            var shelfOrder = Enumerable.Range(0, shelfCount).OrderBy(_ => rng.Next()).ToList();
-            for (var k = 0; k < shelfOrder.Count; k++)
+            for (var s = 0; s < shelfColorLayout.Count && s < level.shelves.Count; s++)
             {
-                var shelf = level.shelves[shelfOrder[k]];
-                if (shelf.boxes.Count >= shelf.capacity)
+                var shelf = level.shelves[s];
+                var colors = shelfColorLayout[s];
+                for (var i = 0; i < colors.Count; i++)
                 {
-                    continue;
+                    var startVisible = rng.NextDouble() < (0.15 + 0.25 / normalizedDifficulty);
+                    shelf.boxes.Add(new BoxSlot
+                    {
+                        color = colors[i],
+                        startVisible = startVisible
+                    });
                 }
-
-                var startVisible = rng.NextDouble() < (0.15 + 0.25 / normalizedDifficulty);
-                shelf.boxes.Add(new BoxSlot
-                {
-                    color = colorPool[cursor],
-                    startVisible = startVisible
-                });
-                cursor++;
-                placed = true;
-                break;
+            }
+        }
+        else
+        {
+            if (boxGenerationManager == null && logBoxGenerationManagerMissing && !printedBoxGenerationManagerMissingWarning)
+            {
+                printedBoxGenerationManagerMissingWarning = true;
+                Debug.LogWarning("[GameManager] BoxGenerationManager 未绑定，CreateControlledLevel 将使用后备颜色生成逻辑。");
             }
 
-            if (!placed)
+            var fallbackColors = (BoxColor[])Enum.GetValues(typeof(BoxColor));
+            var groupSize = 4;
+            var totalBoxes = shelfCount * boxesPerShelf;
+            var groupCount = totalBoxes / groupSize;
+
+            var expandedPool = new List<BoxColor>(totalBoxes);
+            for (var i = 0; i < groupCount; i++)
             {
-                break;
+                var color = fallbackColors[i % fallbackColors.Length];
+                for (var c = 0; c < groupSize; c++)
+                {
+                    expandedPool.Add(color);
+                }
+            }
+
+            Shuffle(expandedPool, rng);
+
+            for (var i = 0; i < expandedPool.Count; i++)
+            {
+                var placed = false;
+                var shelfOrder = Enumerable.Range(0, shelfCount).OrderBy(_ => rng.Next()).ToList();
+                for (var k = 0; k < shelfOrder.Count; k++)
+                {
+                    var shelf = level.shelves[shelfOrder[k]];
+                    if (shelf.boxes.Count >= boxesPerShelf)
+                    {
+                        continue;
+                    }
+
+                    var color = expandedPool[i];
+                    var hasSameColor = shelf.boxes.Any(b => b.color == color);
+                    if (hasSameColor)
+                    {
+                        continue;
+                    }
+
+                    var startVisible = rng.NextDouble() < (0.15 + 0.25 / normalizedDifficulty);
+                    shelf.boxes.Add(new BoxSlot
+                    {
+                        color = color,
+                        startVisible = startVisible
+                    });
+                    placed = true;
+                    break;
+                }
+
+                if (!placed)
+                {
+                    break;
+                }
             }
         }
 
@@ -836,6 +878,8 @@ public class GameManager : MonoBehaviour
         {
             return;
         }
+
+        shelfSpawnManager.SetBoxGenerationManager(boxGenerationManager);
 
         shelfSpawnManager.RefreshShelves(GetTargetShelfCount());
     }
