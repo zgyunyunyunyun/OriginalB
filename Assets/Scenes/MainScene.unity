@@ -315,7 +315,7 @@ MonoBehaviour:
   boxesPerShelf: 4
   configuredTotalShelfCount: 8
   configuredEmptyShelfCount: 1
-  configuredFilledShelfCount: 2
+  configuredFilledShelfCount: 4
   alignBoxRotationToShelf: 1
   useBoxSortingLayer: 1
   boxSortingLayerName: box
@@ -395,7 +395,7 @@ MonoBehaviour:
     enabled: 1
   sameColorGroupSize: 4
   maxGenerateAttempts: 96
-  grayPercentage: 0.475
+  grayPercentage: 0.633
   grayDisplayColor: {r: 0.45, g: 0.45, b: 0.45, a: 1}
 --- !u!4 &1757883260
 Transform:

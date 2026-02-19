@@ -193,6 +193,7 @@ public class ShelfSpawnManager : MonoBehaviour
             var shelfGrayCount = grayCountsPerShelf != null && i < grayCountsPerShelf.Count ? grayCountsPerShelf[i] : 0;
             var shelfBoxCount = shelfBoxCounts != null && i < shelfBoxCounts.Count ? Mathf.Max(0, shelfBoxCounts[i]) : Mathf.Max(1, boxesPerShelf);
             SpawnBoxesForShelf(shelf, shelfColors, shelfGrayCount, shelfBoxCount);
+            EnsureShelfInteractionForRuntime(shelf, i);
         }
 
         LogInfo($"RefreshShelves end | spawnedShelves={spawnedShelves.Count}");
@@ -961,6 +962,115 @@ public class ShelfSpawnManager : MonoBehaviour
         {
             boxTransform.gameObject.AddComponent<BoxInteractionController>();
         }
+    }
+
+    private void EnsureShelfInteractionForRuntime(GameObject shelf, int shelfIndex)
+    {
+        if (shelf == null)
+        {
+            return;
+        }
+
+        SetLayerRecursively(shelf.transform, LayerMask.NameToLayer("Ignore Raycast"));
+        EnsureShelfCollider(shelf.transform);
+
+        var stackRoot = EnsureBoxRootNode(shelf.transform);
+        var shelfInteraction = shelf.GetComponent<ShelfInteractionController>();
+        if (shelfInteraction == null)
+        {
+            shelfInteraction = shelf.AddComponent<ShelfInteractionController>();
+        }
+
+        shelfInteraction.Initialize(shelfIndex, 4, stackRoot);
+
+        var rootRef = stackRoot.GetComponent<ShelfStackRootRef>();
+        if (rootRef == null)
+        {
+            rootRef = stackRoot.gameObject.AddComponent<ShelfStackRootRef>();
+        }
+
+        rootRef.Bind(shelfInteraction);
+        shelfInteraction.RefreshBoxVisualStates();
+    }
+
+    private static void SetLayerRecursively(Transform root, int targetLayer)
+    {
+        if (root == null || targetLayer < 0)
+        {
+            return;
+        }
+
+        root.gameObject.layer = targetLayer;
+        for (var i = 0; i < root.childCount; i++)
+        {
+            SetLayerRecursively(root.GetChild(i), targetLayer);
+        }
+    }
+
+    private static void EnsureShelfCollider(Transform shelfTransform)
+    {
+        if (shelfTransform == null)
+        {
+            return;
+        }
+
+        var boxCollider = shelfTransform.GetComponent<BoxCollider2D>();
+        if (boxCollider == null)
+        {
+            boxCollider = shelfTransform.gameObject.AddComponent<BoxCollider2D>();
+        }
+
+        if (TryGetCombinedBounds(shelfTransform, out var bounds))
+        {
+            var centerLocal = shelfTransform.InverseTransformPoint(bounds.center);
+            var lossyScale = shelfTransform.lossyScale;
+            var scaleX = Mathf.Abs(lossyScale.x);
+            var scaleY = Mathf.Abs(lossyScale.y);
+            if (scaleX < 0.0001f)
+            {
+                scaleX = 1f;
+            }
+
+            if (scaleY < 0.0001f)
+            {
+                scaleY = 1f;
+            }
+
+            boxCollider.offset = new Vector2(centerLocal.x, centerLocal.y);
+            boxCollider.size = new Vector2(bounds.size.x / scaleX, bounds.size.y / scaleY);
+        }
+
+        boxCollider.isTrigger = true;
+    }
+
+    private static bool TryGetCombinedBounds(Transform root, out Bounds bounds)
+    {
+        var renderers = root.GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length > 0)
+        {
+            bounds = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++)
+            {
+                bounds.Encapsulate(renderers[i].bounds);
+            }
+
+            return true;
+        }
+
+        var spriteRenderers = root.GetComponentsInChildren<SpriteRenderer>(true);
+        if (spriteRenderers.Length > 0)
+        {
+            bounds = spriteRenderers[0].bounds;
+            for (var i = 1; i < spriteRenderers.Length; i++)
+            {
+                bounds.Encapsulate(spriteRenderers[i].bounds);
+            }
+
+            return true;
+        }
+
+        bounds = default;
+        return false;
     }
 
     private static Color ResolveDefaultDisplayColor(GameManager.BoxColor colorType)
