@@ -858,6 +858,7 @@ public class ShelfSpawnManager : MonoBehaviour
             var colorType = ResolveColorType(shelfColors, i);
             var shouldGray = i < clampedGrayCount;
             ApplyColorForBox(box.transform, colorType, shouldGray);
+            EnsureInteractionForBox(box.transform);
 
             ApplySortingForBox(box.transform, i);
             spawnedBoxCount++;
@@ -940,6 +941,26 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         visualState.SetState(colorType, originalColor, displayColor, grayed);
+    }
+
+    private void EnsureInteractionForBox(Transform boxTransform)
+    {
+        if (boxTransform == null)
+        {
+            return;
+        }
+
+        var collider2D = boxTransform.GetComponent<Collider2D>();
+        if (collider2D == null)
+        {
+            collider2D = boxTransform.gameObject.AddComponent<BoxCollider2D>();
+        }
+
+        var interaction = boxTransform.GetComponent<BoxInteractionController>();
+        if (interaction == null)
+        {
+            boxTransform.gameObject.AddComponent<BoxInteractionController>();
+        }
     }
 
     private static Color ResolveDefaultDisplayColor(GameManager.BoxColor colorType)

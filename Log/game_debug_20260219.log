@@ -6951,3 +6951,147 @@
 [2026-02-19 13:36:43.784] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_8 | ctx=Shelf_8
 [2026-02-19 13:36:43.784] [INFO] [ShelfSpawn] Spawn boxes on Shelf_8 | shelfBottom=(-0.36, -3.14, 0.00) | shelfTop=(-0.36, -3.14, 0.00) | ctx=Shelf_8
 [2026-02-19 13:36:43.784] [INFO] [ShelfSpawn] RefreshShelves end | spawnedShelves=8
+[2026-02-19 13:44:36.237] [INFO] [ShelfSpawn] Awake start
+[2026-02-19 13:44:36.255] [INFO] [ShelfSpawn] Awake end | shelfPrefab=Shelf | boxPrefab=Box
+[2026-02-19 13:44:36.588] [INFO] [ShelfSpawn] RefreshShelves begin | inputCount=0 | autoSpawn=True
+[2026-02-19 13:44:36.589] [INFO] [ShelfSpawn] Refresh config | targetCount=8 | boxesPerShelf=4 | fillShelfCount=2 | totalBoxes=8 | sortingLayer=box | sortingStart=0
+[2026-02-19 13:44:36.594] [INFO] [ShelfSpawn] Generate constrained color layout success | shelves=8
+[2026-02-19 13:44:36.596] [INFO] [ShelfSpawn] Gray allocation adjusted: 置灰目标从 4 调整为 1（受顶层不可置灰约束）。
+[2026-02-19 13:44:36.597] [INFO] [ShelfSpawn] Gray allocation success | percentage=0.48 | targetGray=1 | perShelf=[0,0,0,0,1,0,0,0]
+[2026-02-19 13:44:36.599] [INFO] [ShelfSpawn] Generated shelf positions: 8
+[2026-02-19 13:44:36.600] [INFO] [ShelfSpawn] Shelf spawned: Shelf_1 at (0.53, 0.62, 0.00) | ctx=Shelf_1
+[2026-02-19 13:44:36.602] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_1 | ctx=Shelf_1
+[2026-02-19 13:44:36.602] [INFO] [ShelfSpawn] Spawn boxes on Shelf_1 | shelfBottom=(0.53, -0.02, 0.00) | shelfTop=(0.53, -0.02, 0.00) | ctx=Shelf_1
+[2026-02-19 13:44:36.603] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:44:36.605] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:44:36.606] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(0.53, 0.17, 0.00) | nextBottom=(0.53, 0.27, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:44:36.606] [WARN] [ShelfSpawn] 货架 Shelf_1 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_1
+[2026-02-19 13:44:36.606] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_1 | spawned=1 | ctx=Shelf_1
+[2026-02-19 13:44:36.606] [INFO] [ShelfSpawn] Shelf spawned: Shelf_2 at (-0.73, 1.06, 0.00) | ctx=Shelf_2
+[2026-02-19 13:44:36.606] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_2 | ctx=Shelf_2
+[2026-02-19 13:44:36.606] [INFO] [ShelfSpawn] Spawn boxes on Shelf_2 | shelfBottom=(-0.73, 0.42, 0.00) | shelfTop=(-0.73, 0.42, 0.00) | ctx=Shelf_2
+[2026-02-19 13:44:36.608] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:44:36.608] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:44:36.608] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(-0.73, 0.61, 0.00) | nextBottom=(-0.73, 0.71, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:44:36.608] [WARN] [ShelfSpawn] 货架 Shelf_2 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_2
+[2026-02-19 13:44:36.608] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_2 | spawned=1 | ctx=Shelf_2
+[2026-02-19 13:44:36.609] [INFO] [ShelfSpawn] Shelf spawned: Shelf_3 at (0.54, -2.50, 0.00) | ctx=Shelf_3
+[2026-02-19 13:44:36.609] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_3 | ctx=Shelf_3
+[2026-02-19 13:44:36.609] [INFO] [ShelfSpawn] Spawn boxes on Shelf_3 | shelfBottom=(0.54, -3.14, 0.00) | shelfTop=(0.54, -3.14, 0.00) | ctx=Shelf_3
+[2026-02-19 13:44:36.609] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:44:36.609] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:44:36.611] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(0.54, -2.94, 0.00) | nextBottom=(0.54, -2.85, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:44:36.611] [WARN] [ShelfSpawn] 货架 Shelf_3 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_3
+[2026-02-19 13:44:36.611] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_3 | spawned=1 | ctx=Shelf_3
+[2026-02-19 13:44:36.611] [INFO] [ShelfSpawn] Shelf spawned: Shelf_4 at (0.61, 2.50, 0.00) | ctx=Shelf_4
+[2026-02-19 13:44:36.611] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_4 | ctx=Shelf_4
+[2026-02-19 13:44:36.612] [INFO] [ShelfSpawn] Spawn boxes on Shelf_4 | shelfBottom=(0.61, 1.86, 0.00) | shelfTop=(0.61, 1.86, 0.00) | ctx=Shelf_4
+[2026-02-19 13:44:36.612] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:44:36.612] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:44:36.612] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(0.61, 2.06, 0.00) | nextBottom=(0.61, 2.15, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:44:36.612] [WARN] [ShelfSpawn] 货架 Shelf_4 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_4
+[2026-02-19 13:44:36.614] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_4 | spawned=1 | ctx=Shelf_4
+[2026-02-19 13:44:36.614] [INFO] [ShelfSpawn] Shelf spawned: Shelf_5 at (-1.12, -2.25, 0.00) | ctx=Shelf_5
+[2026-02-19 13:44:36.614] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_5 | ctx=Shelf_5
+[2026-02-19 13:44:36.614] [INFO] [ShelfSpawn] Spawn boxes on Shelf_5 | shelfBottom=(-1.12, -2.89, 0.00) | shelfTop=(-1.12, -2.89, 0.00) | ctx=Shelf_5
+[2026-02-19 13:44:36.614] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:44:36.615] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:44:36.615] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(-1.12, -2.69, 0.00) | nextBottom=(-1.12, -2.60, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:44:36.615] [WARN] [ShelfSpawn] 货架 Shelf_5 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_5
+[2026-02-19 13:44:36.615] [INFO] [ShelfSpawn] Use box anchors: Box_2 | ctx=Box_2
+[2026-02-19 13:44:36.615] [INFO] [ShelfSpawn] Apply sorting for Box_2 => layer=box, order=1 | ctx=Box_2
+[2026-02-19 13:44:36.617] [INFO] [ShelfSpawn] Box spawned: Box_2 | pos=(-1.12, -2.40, 0.00) | nextBottom=(-1.12, -2.30, 0.00) | sorting=1 | ctx=Box_2
+[2026-02-19 13:44:36.617] [WARN] [ShelfSpawn] 货架 Shelf_5 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_5
+[2026-02-19 13:44:36.617] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_5 | spawned=2 | ctx=Shelf_5
+[2026-02-19 13:44:36.617] [INFO] [ShelfSpawn] Shelf spawned: Shelf_6 at (1.34, -1.94, 0.00) | ctx=Shelf_6
+[2026-02-19 13:44:36.617] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_6 | ctx=Shelf_6
+[2026-02-19 13:44:36.617] [INFO] [ShelfSpawn] Spawn boxes on Shelf_6 | shelfBottom=(1.34, -2.59, 0.00) | shelfTop=(1.34, -2.59, 0.00) | ctx=Shelf_6
+[2026-02-19 13:44:36.618] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:44:36.619] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:44:36.619] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(1.34, -2.39, 0.00) | nextBottom=(1.34, -2.29, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:44:36.619] [WARN] [ShelfSpawn] 货架 Shelf_6 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_6
+[2026-02-19 13:44:36.619] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_6 | spawned=1 | ctx=Shelf_6
+[2026-02-19 13:44:36.620] [INFO] [ShelfSpawn] Shelf spawned: Shelf_7 at (-1.18, 2.50, 0.00) | ctx=Shelf_7
+[2026-02-19 13:44:36.620] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_7 | ctx=Shelf_7
+[2026-02-19 13:44:36.620] [INFO] [ShelfSpawn] Spawn boxes on Shelf_7 | shelfBottom=(-1.18, 1.86, 0.00) | shelfTop=(-1.18, 1.86, 0.00) | ctx=Shelf_7
+[2026-02-19 13:44:36.620] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:44:36.620] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:44:36.620] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(-1.18, 2.06, 0.00) | nextBottom=(-1.18, 2.15, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:44:36.620] [WARN] [ShelfSpawn] 货架 Shelf_7 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_7
+[2026-02-19 13:44:36.622] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_7 | spawned=1 | ctx=Shelf_7
+[2026-02-19 13:44:36.622] [INFO] [ShelfSpawn] Shelf spawned: Shelf_8 at (-0.10, -2.50, 0.00) | ctx=Shelf_8
+[2026-02-19 13:44:36.622] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_8 | ctx=Shelf_8
+[2026-02-19 13:44:36.622] [INFO] [ShelfSpawn] Spawn boxes on Shelf_8 | shelfBottom=(-0.10, -3.14, 0.00) | shelfTop=(-0.10, -3.14, 0.00) | ctx=Shelf_8
+[2026-02-19 13:44:36.622] [INFO] [ShelfSpawn] RefreshShelves end | spawnedShelves=8
+[2026-02-19 13:48:16.084] [INFO] [ShelfSpawn] Awake start
+[2026-02-19 13:48:16.103] [INFO] [ShelfSpawn] Awake end | shelfPrefab=Shelf | boxPrefab=Box
+[2026-02-19 13:48:16.431] [INFO] [ShelfSpawn] RefreshShelves begin | inputCount=0 | autoSpawn=True
+[2026-02-19 13:48:16.432] [INFO] [ShelfSpawn] Refresh config | targetCount=8 | boxesPerShelf=4 | fillShelfCount=2 | totalBoxes=8 | sortingLayer=box | sortingStart=0
+[2026-02-19 13:48:16.437] [INFO] [ShelfSpawn] Generate constrained color layout success | shelves=8
+[2026-02-19 13:48:16.438] [INFO] [ShelfSpawn] Gray allocation adjusted: 置灰目标从 4 调整为 1（受顶层不可置灰约束）。
+[2026-02-19 13:48:16.439] [INFO] [ShelfSpawn] Gray allocation success | percentage=0.48 | targetGray=1 | perShelf=[0,0,0,1,0,0,0,0]
+[2026-02-19 13:48:16.440] [INFO] [ShelfSpawn] Generated shelf positions: 8
+[2026-02-19 13:48:16.442] [INFO] [ShelfSpawn] Shelf spawned: Shelf_1 at (0.71, 0.51, 0.00) | ctx=Shelf_1
+[2026-02-19 13:48:16.443] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_1 | ctx=Shelf_1
+[2026-02-19 13:48:16.443] [INFO] [ShelfSpawn] Spawn boxes on Shelf_1 | shelfBottom=(0.71, -0.13, 0.00) | shelfTop=(0.71, -0.13, 0.00) | ctx=Shelf_1
+[2026-02-19 13:48:16.445] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:48:16.446] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:48:16.448] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(0.71, 0.07, 0.00) | nextBottom=(0.71, 0.16, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:48:16.448] [WARN] [ShelfSpawn] 货架 Shelf_1 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_1
+[2026-02-19 13:48:16.448] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_1 | spawned=1 | ctx=Shelf_1
+[2026-02-19 13:48:16.448] [INFO] [ShelfSpawn] Shelf spawned: Shelf_2 at (-0.81, 0.73, 0.00) | ctx=Shelf_2
+[2026-02-19 13:48:16.448] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_2 | ctx=Shelf_2
+[2026-02-19 13:48:16.449] [INFO] [ShelfSpawn] Spawn boxes on Shelf_2 | shelfBottom=(-0.81, 0.09, 0.00) | shelfTop=(-0.81, 0.09, 0.00) | ctx=Shelf_2
+[2026-02-19 13:48:16.450] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:48:16.450] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:48:16.450] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(-0.81, 0.28, 0.00) | nextBottom=(-0.81, 0.38, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:48:16.450] [WARN] [ShelfSpawn] 货架 Shelf_2 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_2
+[2026-02-19 13:48:16.451] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_2 | spawned=1 | ctx=Shelf_2
+[2026-02-19 13:48:16.451] [INFO] [ShelfSpawn] Shelf spawned: Shelf_3 at (0.54, -2.50, 0.00) | ctx=Shelf_3
+[2026-02-19 13:48:16.451] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_3 | ctx=Shelf_3
+[2026-02-19 13:48:16.451] [INFO] [ShelfSpawn] Spawn boxes on Shelf_3 | shelfBottom=(0.54, -3.14, 0.00) | shelfTop=(0.54, -3.14, 0.00) | ctx=Shelf_3
+[2026-02-19 13:48:16.451] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:48:16.451] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:48:16.452] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(0.54, -2.94, 0.00) | nextBottom=(0.54, -2.85, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:48:16.452] [WARN] [ShelfSpawn] 货架 Shelf_3 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_3
+[2026-02-19 13:48:16.452] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_3 | spawned=1 | ctx=Shelf_3
+[2026-02-19 13:48:16.452] [INFO] [ShelfSpawn] Shelf spawned: Shelf_4 at (0.57, 2.50, 0.00) | ctx=Shelf_4
+[2026-02-19 13:48:16.452] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_4 | ctx=Shelf_4
+[2026-02-19 13:48:16.452] [INFO] [ShelfSpawn] Spawn boxes on Shelf_4 | shelfBottom=(0.57, 1.86, 0.00) | shelfTop=(0.57, 1.86, 0.00) | ctx=Shelf_4
+[2026-02-19 13:48:16.454] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:48:16.454] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:48:16.454] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(0.57, 2.06, 0.00) | nextBottom=(0.57, 2.15, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:48:16.454] [WARN] [ShelfSpawn] 货架 Shelf_4 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_4
+[2026-02-19 13:48:16.455] [INFO] [ShelfSpawn] Use box anchors: Box_2 | ctx=Box_2
+[2026-02-19 13:48:16.455] [INFO] [ShelfSpawn] Apply sorting for Box_2 => layer=box, order=1 | ctx=Box_2
+[2026-02-19 13:48:16.455] [INFO] [ShelfSpawn] Box spawned: Box_2 | pos=(0.57, 2.35, 0.00) | nextBottom=(0.57, 2.44, 0.00) | sorting=1 | ctx=Box_2
+[2026-02-19 13:48:16.455] [WARN] [ShelfSpawn] 货架 Shelf_4 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_4
+[2026-02-19 13:48:16.455] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_4 | spawned=2 | ctx=Shelf_4
+[2026-02-19 13:48:16.457] [INFO] [ShelfSpawn] Shelf spawned: Shelf_5 at (-1.58, -1.15, 0.00) | ctx=Shelf_5
+[2026-02-19 13:48:16.457] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_5 | ctx=Shelf_5
+[2026-02-19 13:48:16.457] [INFO] [ShelfSpawn] Spawn boxes on Shelf_5 | shelfBottom=(-1.58, -1.80, 0.00) | shelfTop=(-1.58, -1.80, 0.00) | ctx=Shelf_5
+[2026-02-19 13:48:16.457] [INFO] [ShelfSpawn] Shelf spawned: Shelf_6 at (1.65, -1.51, 0.00) | ctx=Shelf_6
+[2026-02-19 13:48:16.457] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_6 | ctx=Shelf_6
+[2026-02-19 13:48:16.457] [INFO] [ShelfSpawn] Spawn boxes on Shelf_6 | shelfBottom=(1.65, -2.15, 0.00) | shelfTop=(1.65, -2.15, 0.00) | ctx=Shelf_6
+[2026-02-19 13:48:16.459] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:48:16.459] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:48:16.459] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(1.65, -1.95, 0.00) | nextBottom=(1.65, -1.86, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:48:16.459] [WARN] [ShelfSpawn] 货架 Shelf_6 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_6
+[2026-02-19 13:48:16.460] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_6 | spawned=1 | ctx=Shelf_6
+[2026-02-19 13:48:16.460] [INFO] [ShelfSpawn] Shelf spawned: Shelf_7 at (-0.58, 2.50, 0.00) | ctx=Shelf_7
+[2026-02-19 13:48:16.460] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_7 | ctx=Shelf_7
+[2026-02-19 13:48:16.460] [INFO] [ShelfSpawn] Spawn boxes on Shelf_7 | shelfBottom=(-0.58, 1.86, 0.00) | shelfTop=(-0.58, 1.86, 0.00) | ctx=Shelf_7
+[2026-02-19 13:48:16.460] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:48:16.460] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:48:16.460] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(-0.58, 2.06, 0.00) | nextBottom=(-0.58, 2.15, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:48:16.460] [WARN] [ShelfSpawn] 货架 Shelf_7 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_7
+[2026-02-19 13:48:16.462] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_7 | spawned=1 | ctx=Shelf_7
+[2026-02-19 13:48:16.462] [INFO] [ShelfSpawn] Shelf spawned: Shelf_8 at (-0.02, -2.50, 0.00) | ctx=Shelf_8
+[2026-02-19 13:48:16.462] [INFO] [ShelfSpawn] Use shelf anchors from StackAnchorPoints: Shelf_8 | ctx=Shelf_8
+[2026-02-19 13:48:16.462] [INFO] [ShelfSpawn] Spawn boxes on Shelf_8 | shelfBottom=(-0.02, -3.14, 0.00) | shelfTop=(-0.02, -3.14, 0.00) | ctx=Shelf_8
+[2026-02-19 13:48:16.462] [INFO] [ShelfSpawn] Use box anchors: Box_1 | ctx=Box_1
+[2026-02-19 13:48:16.463] [INFO] [ShelfSpawn] Apply sorting for Box_1 => layer=box, order=0 | ctx=Box_1
+[2026-02-19 13:48:16.463] [INFO] [ShelfSpawn] Box spawned: Box_1 | pos=(-0.02, -2.94, 0.00) | nextBottom=(-0.02, -2.85, 0.00) | sorting=0 | ctx=Box_1
+[2026-02-19 13:48:16.463] [WARN] [ShelfSpawn] 货架 Shelf_8 的箱子堆叠超过顶部锚点，请检查锚点或减少 boxesPerShelf。 | ctx=Shelf_8
+[2026-02-19 13:48:16.463] [INFO] [ShelfSpawn] Spawn boxes finished on Shelf_8 | spawned=1 | ctx=Shelf_8
+[2026-02-19 13:48:16.463] [INFO] [ShelfSpawn] RefreshShelves end | spawnedShelves=8

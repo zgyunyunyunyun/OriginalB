@@ -300,8 +300,7 @@ MonoBehaviour:
   shelfPrefab: {fileID: 7884151283758860229, guid: 142ae4fdf325cdc4394b406dab00bcd4, type: 3}
   shelfRoot: {fileID: 2124350419}
   autoSpawnShelves: 1
-  configuredTotalShelfCount: 8
-  configuredFilledShelfCount: 2
+  previewShelfCount: 8
   viewportHorizontalPadding: 0.1
   viewportVerticalPadding: 0.25
   viewportInnerRadius: 0.05
@@ -314,6 +313,9 @@ MonoBehaviour:
   boxPrefab: {fileID: 3417449801406828113, guid: 3656210d32c17a7469e7eae2edbccf35, type: 3}
   boxGenerationManager: {fileID: 0}
   boxesPerShelf: 4
+  configuredTotalShelfCount: 8
+  configuredEmptyShelfCount: 1
+  configuredFilledShelfCount: 2
   alignBoxRotationToShelf: 1
   useBoxSortingLayer: 1
   boxSortingLayerName: box
