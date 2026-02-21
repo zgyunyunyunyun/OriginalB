@@ -47,3 +47,6 @@ TagManager:
   - name: box
     uniqueID: 1361375675
     locked: 0
+  - name: car
+    uniqueID: 2358921395
+    locked: 0

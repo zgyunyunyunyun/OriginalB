@@ -306,6 +306,8 @@ MonoBehaviour:
   viewportInnerRadius: 0.05
   viewportOuterRadius: 0.42
   minShelfDistance: 0
+  shelfVerticalSpacingScale: 1.145
+  shelfVerticalGapOffset: 0
   distanceScaleFromPrefab: 1
   spawnPlaneZ: 0
   spawnSeed: 20260218
@@ -320,10 +322,61 @@ MonoBehaviour:
   useBoxSortingLayer: 1
   boxSortingLayerName: box
   boxSortingOrderStart: 0
+  runtimeMode: 0
+  designedLevelId: level_001
+  useDesignedLevelInGameMode: 1
+  useDesignedLevelInDesignMode: 1
+  currentLevelIndex: 1
+  useNumericLevelId: 1
+  levelIdPrefix: level_
+  levelNumberPadding: 3
+  carPrefab: {fileID: 6464060242738103305, guid: 98679d0e351e70a41bb55fea5101ec23, type: 3}
+  maxTruckCount: 4
+  truckViewportY: 0.88
+  truckHorizontalPadding: 0.15
+  boxToTruckMoveDuration: 0.2
+  truckShiftDuration: 0.18
+  truckExitSpeed: 6
+  catPrefab: {fileID: 1095932479865119523, guid: 48c362a2191c7de40970c5b71818b485, type: 3}
+  catShrinkTowardTargetBox: 1
+  catStayDuration: 2
+  catMoveSpeed: 900
+  catShrinkSpeed: 1.8
+  catMinScaleFactor: 0.15
+  catHintMessage: "\u627E\u5230\u8EB2\u5728\u7BB1\u5B50\u91CC\u7684\u5C0F\u732B"
+  catHintDuration: 2
+  catWinMessage: "\u627E\u5230\u4E86\u5C0F\u732B\uFF0C\u6E38\u620F\u901A\u5173"
   showRegenerateButton: 1
   regenerateButtonText: "\u91CD\u65B0\u4EA7\u751F\u8D27\u67B6"
   regenerateButtonSize: {x: 220, y: 56}
   regenerateButtonPosition: {x: 0, y: -48}
+  showLevelNavigationInGameMode: 1
+  showLevelNavigationInDesignMode: 1
+  previousLevelButtonText: "\u4E0A\u4E00\u5173"
+  nextLevelButtonText: "\u4E0B\u4E00\u5173"
+  levelNavButtonSize: {x: 160, y: 52}
+  previousLevelButtonPosition: {x: -200, y: -48}
+  nextLevelButtonPosition: {x: 200, y: -48}
+  levelIndicatorSize: {x: 260, y: 52}
+  levelIndicatorPosition: {x: 24, y: -24}
+  showSaveLevelButtonInDesignMode: 1
+  saveLevelButtonText: "\u4FDD\u5B58\u5173\u5361"
+  saveLevelButtonSize: {x: 180, y: 52}
+  saveLevelButtonPosition: {x: -120, y: -24}
+  showDesignToolsPanel: 1
+  shelfColumnCount: 3
+  currentColorTypeCount: 4
+  refreshColorsButtonText: "\u5237\u65B0"
+  designPanelSize: {x: 420, y: 170}
+  designPanelPosition: {x: 0, y: -24}
+  columnControlAreaSize: {x: 0, y: 220}
+  columnControlAreaPosition: {x: 0, y: 96}
+  columnVerticalMoveStep: 0.04
+  maxColumnVerticalOffset: 0.22
+  enterDesignModeButtonText: "\u8FDB\u5165\u8BBE\u8BA1\u6A21\u5F0F"
+  enterGameModeButtonText: "\u8FDB\u5165\u6E38\u620F\u6A21\u5F0F"
+  modeToggleButtonSize: {x: 260, y: 56}
+  modeToggleButtonPosition: {x: 0, y: 32}
   migrateSceneShelvesOnRefresh: 1
   disableLegacyShelvesAfterMigration: 1
   destroyLegacyShelvesAfterMigration: 0

@@ -19,33 +19,46 @@ namespace WeChatWASM
     public class WXSettingsHelper
     {
         public static string projectRootPath;
+        private static Type weixinMiniGamePackageHelpersType;
+        private static EventInfo onSettingsGUIEvent;
+        private static EventInfo onPackageFocusEvent;
+        private static EventInfo onPackageLostFocusEvent;
+        private static EventInfo onBuildButtonGUIEvent;
+        private static Action focusHandler;
+        private static Action lostFocusHandler;
+        private static Action<EditorWindow> settingsGuiHandler;
+        private static Action<EditorWindow> buildButtonHandler;
+        private static bool subscribedReloadCleanup;
+        private static bool subscribedEditorLifecycleCleanup;
 
         public WXSettingsHelper()
         {
-            Type weixinMiniGamePackageHelpersType = Type.GetType("UnityEditor.WeixinPackageHelpers,UnityEditor");
+            weixinMiniGamePackageHelpersType = Type.GetType("UnityEditor.WeixinPackageHelpers,UnityEditor");
             if (weixinMiniGamePackageHelpersType != null)
             {
-                EventInfo onSettingsGUIEvent = weixinMiniGamePackageHelpersType.GetEvent("OnPackageSettingsGUI");
-                EventInfo onPackageFocusEvent = weixinMiniGamePackageHelpersType.GetEvent("OnPackageFocus");
-                EventInfo onPackageLostFocusEvent = weixinMiniGamePackageHelpersType.GetEvent("OnPackageLostFocus");
-                EventInfo onBuildButtonGUIEvent = weixinMiniGamePackageHelpersType.GetEvent("OnPackageBuildButtonGUI");
+                onSettingsGUIEvent = weixinMiniGamePackageHelpersType.GetEvent("OnPackageSettingsGUI");
+                onPackageFocusEvent = weixinMiniGamePackageHelpersType.GetEvent("OnPackageFocus");
+                onPackageLostFocusEvent = weixinMiniGamePackageHelpersType.GetEvent("OnPackageLostFocus");
+                onBuildButtonGUIEvent = weixinMiniGamePackageHelpersType.GetEvent("OnPackageBuildButtonGUI");
 
-                if (onPackageFocusEvent != null)
+                focusHandler = OnFocus;
+                lostFocusHandler = OnLostFocus;
+                settingsGuiHandler = OnSettingsGUI;
+                buildButtonHandler = OnBuildButtonGUI;
+
+                RegisterHandlers();
+
+                if (!subscribedReloadCleanup)
                 {
-                    onPackageFocusEvent.AddEventHandler(null, new Action(OnFocus));
+                    AssemblyReloadEvents.beforeAssemblyReload += UnregisterHandlers;
+                    subscribedReloadCleanup = true;
                 }
 
-                if (onPackageLostFocusEvent != null)
+                if (!subscribedEditorLifecycleCleanup)
                 {
-                    onPackageLostFocusEvent.AddEventHandler(null, new Action(OnLostFocus));
-                }
-                if (onSettingsGUIEvent != null)
-                {
-                    onSettingsGUIEvent.AddEventHandler(null, new Action<EditorWindow>(OnSettingsGUI));
-                }
-                if (onBuildButtonGUIEvent != null)
-                {
-                    onBuildButtonGUIEvent.AddEventHandler(null, new Action<EditorWindow>(OnBuildButtonGUI));
+                    EditorApplication.quitting += UnregisterHandlers;
+                    EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+                    subscribedEditorLifecycleCleanup = true;
                 }
 
             }
@@ -54,6 +67,81 @@ namespace WeChatWASM
             foldInstantGame = WXConvertCore.IsInstantGameAutoStreaming();
 
             projectRootPath = System.IO.Path.GetFullPath(Application.dataPath + "/../");
+        }
+
+        private static void RegisterHandlers()
+        {
+            UnregisterHandlers();
+
+            if (onPackageFocusEvent != null && focusHandler != null)
+            {
+                onPackageFocusEvent.AddEventHandler(null, focusHandler);
+            }
+
+            if (onPackageLostFocusEvent != null && lostFocusHandler != null)
+            {
+                onPackageLostFocusEvent.AddEventHandler(null, lostFocusHandler);
+            }
+
+            if (onSettingsGUIEvent != null && settingsGuiHandler != null)
+            {
+                onSettingsGUIEvent.AddEventHandler(null, settingsGuiHandler);
+            }
+
+            if (onBuildButtonGUIEvent != null && buildButtonHandler != null)
+            {
+                onBuildButtonGUIEvent.AddEventHandler(null, buildButtonHandler);
+            }
+        }
+
+        private static void UnregisterHandlers()
+        {
+            if (onPackageFocusEvent != null && focusHandler != null)
+            {
+                onPackageFocusEvent.RemoveEventHandler(null, focusHandler);
+            }
+
+            if (onPackageLostFocusEvent != null && lostFocusHandler != null)
+            {
+                onPackageLostFocusEvent.RemoveEventHandler(null, lostFocusHandler);
+            }
+
+            if (onSettingsGUIEvent != null && settingsGuiHandler != null)
+            {
+                onSettingsGUIEvent.RemoveEventHandler(null, settingsGuiHandler);
+            }
+
+            if (onBuildButtonGUIEvent != null && buildButtonHandler != null)
+            {
+                onBuildButtonGUIEvent.RemoveEventHandler(null, buildButtonHandler);
+            }
+
+            if (subscribedReloadCleanup)
+            {
+                AssemblyReloadEvents.beforeAssemblyReload -= UnregisterHandlers;
+                subscribedReloadCleanup = false;
+            }
+
+            if (subscribedEditorLifecycleCleanup)
+            {
+                EditorApplication.quitting -= UnregisterHandlers;
+                EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+                subscribedEditorLifecycleCleanup = false;
+            }
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            if (state == PlayModeStateChange.ExitingEditMode || state == PlayModeStateChange.ExitingPlayMode)
+            {
+                UnregisterHandlers();
+                return;
+            }
+
+            if (state == PlayModeStateChange.EnteredEditMode)
+            {
+                RegisterHandlers();
+            }
         }
 
         private static WXEditorScriptObject config;

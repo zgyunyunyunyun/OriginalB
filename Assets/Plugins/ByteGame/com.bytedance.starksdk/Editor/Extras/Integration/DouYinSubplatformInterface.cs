@@ -9,9 +9,24 @@ namespace TTSDK.Tool
     [InitializeOnLoad]
     public static class DouYinSubTargetManager
     {
+        private const string RegisterFlagKey = "OriginalB.DouYinSubplatform.Registered";
+
         static DouYinSubTargetManager()
         {
-            MiniGameSubplatformManager.RegisterSubplatform(new DouYinSubplatformInterface());
+            if (SessionState.GetBool(RegisterFlagKey, false))
+            {
+                return;
+            }
+
+            try
+            {
+                MiniGameSubplatformManager.RegisterSubplatform(new DouYinSubplatformInterface());
+                SessionState.SetBool(RegisterFlagKey, true);
+            }
+            catch
+            {
+                SessionState.SetBool(RegisterFlagKey, false);
+            }
         }
     }
 

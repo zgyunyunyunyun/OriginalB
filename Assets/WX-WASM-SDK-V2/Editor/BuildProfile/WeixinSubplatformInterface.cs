@@ -14,9 +14,24 @@ namespace WeChatWASM
     [InitializeOnLoad]
     public static class WeixinSubTargetManager
     {
+        private const string RegisterFlagKey = "OriginalB.WeixinSubplatform.Registered";
+
         static WeixinSubTargetManager()
         {
-            MiniGameSubplatformManager.RegisterSubplatform(new WeixinSubplatformInterface());
+            if (SessionState.GetBool(RegisterFlagKey, false))
+            {
+                return;
+            }
+
+            try
+            {
+                MiniGameSubplatformManager.RegisterSubplatform(new WeixinSubplatformInterface());
+                SessionState.SetBool(RegisterFlagKey, true);
+            }
+            catch
+            {
+                SessionState.SetBool(RegisterFlagKey, false);
+            }
         }
     }
 

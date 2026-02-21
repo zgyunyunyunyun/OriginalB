@@ -407,6 +407,7 @@ public class BoxInteractionController : MonoBehaviour
             targetShelf.RefreshBoxVisualStates();
             shelfTopPosition = transform.position;
             shelfTopRotation = transform.rotation;
+            NotifyMoveResolved(sourceShelf, targetShelf);
             LogInteraction($"TryPlaceOnShelf success immediate | from={sourceShelf.ShelfIndex} to={targetShelf.ShelfIndex}");
             return true;
         }
@@ -576,6 +577,17 @@ public class BoxInteractionController : MonoBehaviour
         }
     }
 
+    private static void NotifyMoveResolved(ShelfInteractionController sourceShelf, ShelfInteractionController targetShelf)
+    {
+        var manager = FindObjectOfType<ShelfSpawnManager>();
+        if (manager == null)
+        {
+            return;
+        }
+
+        manager.HandleBoxMoved(sourceShelf, targetShelf);
+    }
+
     private IEnumerator MoveToShelfRoutine(
         Vector3 targetPosition,
         Quaternion targetRotation,
@@ -617,6 +629,7 @@ public class BoxInteractionController : MonoBehaviour
         shelfTopPosition = transform.position;
         shelfTopRotation = transform.rotation;
         animationRoutine = null;
+        NotifyMoveResolved(sourceShelf, targetShelf);
         LogInteraction($"MoveToShelfRoutine complete | from={sourceShelf.ShelfIndex} to={targetShelf.ShelfIndex}");
     }
 

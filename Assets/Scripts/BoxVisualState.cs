@@ -8,12 +8,14 @@ public class BoxVisualState : MonoBehaviour
     [SerializeField] private Color currentDisplayColor = Color.white;
     [SerializeField] private bool isGrayed;
     [SerializeField] private bool hasRevealedOriginalPermanently;
+    [SerializeField] private bool hasCatHidden;
 
     public GameManager.BoxColor OriginalColorType => originalColorType;
     public Color OriginalDisplayColor => originalDisplayColor;
     public Color CurrentDisplayColor => currentDisplayColor;
     public bool IsGrayed => isGrayed;
     public bool HasRevealedOriginalPermanently => hasRevealedOriginalPermanently;
+    public bool HasCatHidden => hasCatHidden;
 
     public void SetState(GameManager.BoxColor colorType, Color originalColor, Color currentColor, bool grayed)
     {
@@ -33,6 +35,11 @@ public class BoxVisualState : MonoBehaviour
 
         var targetColor = hasRevealedOriginalPermanently ? originalDisplayColor : currentDisplayColor;
         ApplyDisplayColor(targetColor);
+    }
+
+    public void SetCatHidden(bool value)
+    {
+        hasCatHidden = value;
     }
 
     private static bool ApproximatelyColor(Color a, Color b)
