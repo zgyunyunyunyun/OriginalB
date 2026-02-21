@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OriginalB.Platform.Core;
+using OriginalB.Platform.Interfaces;
+using OriginalB.Platform.Services.Common;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -28,6 +31,12 @@ public class GameManager : MonoBehaviour
         RevealShelf,
         UndoMove,
         CatHint
+    }
+
+    public enum AdRewardShelfPolicy
+    {
+        RequireAdReady,
+        AllowFallbackWithoutAd
     }
 
     [Serializable]
@@ -123,13 +132,31 @@ public class GameManager : MonoBehaviour
     private readonly Stack<MoveRecord> moveHistory = new Stack<MoveRecord>();
     private int boxIdGenerator;
     private bool printedBoxGenerationManagerMissingWarning;
+    private IStorageService storageService;
+    private IAdService adService;
+    private IAnalyticsService analyticsService;
 
     public GameState State { get; private set; } = GameState.Idle;
     public int LastHintShelfIndex { get; private set; } = -1;
-    public int TotalPoints => PlayerPrefs.GetInt(TotalPointsKey, 0);
+    public int TotalPoints => storageService != null ? storageService.GetInt(TotalPointsKey, 0) : 0;
 
     private void Awake()
     {
+        if (!ServiceLocator.TryResolve<IStorageService>(out storageService))
+        {
+            storageService = new CommonStorageService();
+        }
+
+        if (!ServiceLocator.TryResolve<IAdService>(out adService))
+        {
+            adService = new CommonAdService();
+        }
+
+        if (!ServiceLocator.TryResolve<IAnalyticsService>(out analyticsService))
+        {
+            analyticsService = new CommonAnalyticsService();
+        }
+
         EnsureShelfSpawnManager();
         ResetDailyCounterIfNeeded();
         ResetToolInventory();
@@ -148,7 +175,7 @@ public class GameManager : MonoBehaviour
     public int GetRemainingDailyAttempts()
     {
         ResetDailyCounterIfNeeded();
-        var used = PlayerPrefs.GetInt(DailyCountKey, 0);
+        var used = storageService.GetInt(DailyCountKey, 0);
         return Mathf.Max(0, dailyPlayLimit - used);
     }
 
@@ -177,6 +204,11 @@ public class GameManager : MonoBehaviour
         }
 
         State = GameState.Playing;
+        analyticsService.TrackEvent("level_start", new Dictionary<string, object>
+        {
+            { "levelIndex", levelIndex },
+            { "difficulty", currentLevel.difficulty }
+        });
         TryRefreshShelfSpawn();
 
         return true;
@@ -266,6 +298,11 @@ public class GameManager : MonoBehaviour
         }
 
         toolInventory[toolType]--;
+        analyticsService.TrackEvent("tool_use", new Dictionary<string, object>
+        {
+            { "toolType", toolType.ToString() },
+            { "remaining", toolInventory[toolType] }
+        });
         return true;
     }
 
@@ -280,6 +317,105 @@ public class GameManager : MonoBehaviour
     }
 
     public bool UseAdRewardShelf()
+    {
+        var success = TryGrantAdRewardShelf();
+        if (success)
+        {
+            analyticsService.TrackEvent("ad_reward_shelf_granted", new Dictionary<string, object>
+            {
+                { "remaining", currentLevel != null ? currentLevel.adRewardShelvesRemaining : 0 }
+            });
+        }
+
+        return success;
+    }
+
+    public void RequestAdRewardShelf(Action<bool> onCompleted, bool allowFallbackWithoutAd)
+    {
+        var policy = allowFallbackWithoutAd
+            ? AdRewardShelfPolicy.AllowFallbackWithoutAd
+            : AdRewardShelfPolicy.RequireAdReady;
+        RequestAdRewardShelf(onCompleted, policy);
+    }
+
+    public void RequestAdRewardShelf(Action<bool> onCompleted, AdRewardShelfPolicy policy)
+    {
+        if (State != GameState.Playing || currentLevel == null)
+        {
+            onCompleted?.Invoke(false);
+            return;
+        }
+
+        if (currentLevel.adRewardShelvesRemaining <= 0)
+        {
+            onCompleted?.Invoke(false);
+            return;
+        }
+
+        if (adService != null && adService.IsRewardedReady())
+        {
+            TryUseAdRewardShelfWithAd(onCompleted);
+            return;
+        }
+
+        if (policy == AdRewardShelfPolicy.RequireAdReady)
+        {
+            analyticsService.TrackEvent("ad_reward_shelf_not_ready");
+            onCompleted?.Invoke(false);
+            return;
+        }
+
+        var granted = UseAdRewardShelf();
+        analyticsService.TrackEvent("ad_reward_shelf_fallback", new Dictionary<string, object>
+        {
+            { "granted", granted }
+        });
+        onCompleted?.Invoke(granted);
+    }
+
+    public void TryUseAdRewardShelfWithAd(Action<bool> onCompleted)
+    {
+        if (State != GameState.Playing || currentLevel == null)
+        {
+            onCompleted?.Invoke(false);
+            return;
+        }
+
+        if (currentLevel.adRewardShelvesRemaining <= 0)
+        {
+            onCompleted?.Invoke(false);
+            return;
+        }
+
+        if (adService == null || !adService.IsRewardedReady())
+        {
+            onCompleted?.Invoke(false);
+            return;
+        }
+
+        adService.ShowRewarded(completed =>
+        {
+            if (!completed)
+            {
+                analyticsService.TrackEvent("ad_reward_shelf_failed");
+                onCompleted?.Invoke(false);
+                return;
+            }
+
+            var granted = TryGrantAdRewardShelf();
+            if (granted)
+            {
+                analyticsService.TrackEvent("ad_reward_shelf_granted", new Dictionary<string, object>
+                {
+                    { "remaining", currentLevel != null ? currentLevel.adRewardShelvesRemaining : 0 }
+                });
+            }
+
+            onCompleted?.Invoke(granted);
+        });
+    }
+
+    private bool TryGrantAdRewardShelf()
     {
         if (State != GameState.Playing || currentLevel == null)
         {
@@ -698,12 +834,21 @@ public class GameManager : MonoBehaviour
         {
             State = GameState.Win;
             GrantWinRewards();
+            analyticsService.TrackEvent("level_win", new Dictionary<string, object>
+            {
+                { "score", currentLevel.score },
+                { "rewardScore", currentLevel.rewardScore }
+            });
             return;
         }
 
         if (!HasAnyValidMove(currentLevel))
         {
             State = GameState.Lose;
+            analyticsService.TrackEvent("level_lose", new Dictionary<string, object>
+            {
+                { "score", currentLevel.score }
+            });
         }
     }
 
@@ -717,9 +862,9 @@ public class GameManager : MonoBehaviour
         var reward = currentLevel.rewardScore + currentLevel.score;
         var remainToolBonus = toolInventory.Values.Sum() * 5;
         reward += remainToolBonus;
-        var total = PlayerPrefs.GetInt(TotalPointsKey, 0);
-        PlayerPrefs.SetInt(TotalPointsKey, total + reward);
-        PlayerPrefs.Save();
+        var total = storageService.GetInt(TotalPointsKey, 0);
+        storageService.SetInt(TotalPointsKey, total + reward);
+        storageService.Save();
     }
 
     private bool RevealShelf(int shelfIndex)
@@ -834,23 +979,23 @@ public class GameManager : MonoBehaviour
     private void ResetDailyCounterIfNeeded()
     {
         var today = DateTime.Now.ToString("yyyyMMdd");
-        var stored = PlayerPrefs.GetString(DailyDateKey, string.Empty);
+        var stored = storageService.GetString(DailyDateKey, string.Empty);
         if (stored == today)
         {
             return;
         }
 
-        PlayerPrefs.SetString(DailyDateKey, today);
-        PlayerPrefs.SetInt(DailyCountKey, 0);
-        PlayerPrefs.Save();
+        storageService.SetString(DailyDateKey, today);
+        storageService.SetInt(DailyCountKey, 0);
+        storageService.Save();
     }
 
     private void ConsumeDailyAttempt()
     {
         ResetDailyCounterIfNeeded();
-        var count = PlayerPrefs.GetInt(DailyCountKey, 0);
-        PlayerPrefs.SetInt(DailyCountKey, count + 1);
-        PlayerPrefs.Save();
+        var count = storageService.GetInt(DailyCountKey, 0);
+        storageService.SetInt(DailyCountKey, count + 1);
+        storageService.Save();
     }
 
     private void EnsureShelfSpawnManager()

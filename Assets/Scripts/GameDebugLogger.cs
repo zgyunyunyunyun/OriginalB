@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using OriginalB.Platform.Core;
+using OriginalB.Platform.Interfaces;
+using OriginalB.Platform.Services.Common;
 using UnityEngine;
 
 public static class GameDebugLogger
@@ -7,6 +10,9 @@ public static class GameDebugLogger
     private static readonly object Sync = new object();
     private static string cachedLogFilePath;
     private static bool printedLogPath;
+    private static bool resolvedServices;
+    private static ILogService logService;
+    private static IPlatformContext platformContext;
 
     public static bool EnableConsoleLog = true;
     public static bool EnableFileLog = true;
@@ -29,24 +35,43 @@ public static class GameDebugLogger
     private static void Write(string level, string tag, string message)
     {
         var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{level}] [{tag}] {message}";
+        EnsureServices();
 
         if (EnableConsoleLog)
         {
-            if (level == "ERROR")
+            if (logService != null)
             {
-                Debug.LogError(line);
-            }
-            else if (level == "WARN")
-            {
-                Debug.LogWarning(line);
+                if (level == "ERROR")
+                {
+                    logService.Error(tag, message);
+                }
+                else if (level == "WARN")
+                {
+                    logService.Warn(tag, message);
+                }
+                else
+                {
+                    logService.Info(tag, message);
+                }
             }
             else
             {
-                Debug.Log(line);
+                if (level == "ERROR")
+                {
+                    Debug.LogError(line);
+                }
+                else if (level == "WARN")
+                {
+                    Debug.LogWarning(line);
+                }
+                else
+                {
+                    Debug.Log(line);
+                }
             }
         }
 
-        if (!EnableFileLog)
+        if (!EnableFileLog || !ShouldWriteFileLog())
         {
             return;
         }
@@ -63,6 +88,40 @@ public static class GameDebugLogger
         {
             Debug.LogWarning($"[GameDebugLogger] Write file failed: {ex.Message}");
         }
+    }
+
+    private static void EnsureServices()
+    {
+        if (resolvedServices)
+        {
+            return;
+        }
+
+        resolvedServices = true;
+        if (!ServiceLocator.TryResolve<ILogService>(out logService))
+        {
+            logService = new CommonLogService();
+        }
+
+        if (!ServiceLocator.TryResolve<IPlatformContext>(out platformContext))
+        {
+            platformContext = null;
+        }
+    }
+
+    private static bool ShouldWriteFileLog()
+    {
+        if (Application.platform == RuntimePlatform.WebGLPlayer)
+        {
+            return false;
+        }
+
+        if (platformContext == null)
+        {
+            return true;
+        }
+
+        return platformContext.Current == PlatformType.Common;
     }
 
     private static string ResolveLogFilePath()

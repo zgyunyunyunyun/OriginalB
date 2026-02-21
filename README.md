@@ -48,6 +48,11 @@
 - `Assets/Scripts/GameManager.cs`
 - `Assets/Scripts/ShelfSpawnManager.cs`
 
+## 小游戏迁移与验收
+
+- 真机前检查清单：`Docs/小游戏真机前检查清单.md`
+- 最小回归用例表：`Docs/小游戏最小回归用例表.md`
+
 ## 可调参数建议
 
 - 若货架仍过密：增大 `viewportHorizontalPadding` / `viewportVerticalPadding`，或减小 `previewShelfCount`
@@ -58,7 +63,7 @@
 
 仓库已连接远程：
 
-- `origin`: https://github.com/zgyunyunyunyun/OriginalB.git
+- `origin`: [https://github.com/zgyunyunyunyun/OriginalB.git](https://github.com/zgyunyunyunyun/OriginalB.git)
 
 后续提交流程：
 

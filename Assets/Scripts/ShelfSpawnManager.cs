@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OriginalB.Platform.Core;
+using OriginalB.Platform.Interfaces;
+using OriginalB.Platform.Services.Common;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.EventSystems;
@@ -54,6 +57,7 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private bool enableDebugFileLog = true;
 
     private readonly List<GameObject> spawnedShelves = new List<GameObject>();
+    private IPlatformContext platformContext;
     private Transform runtimeShelfRoot;
     private Transform runtimeBoxRoot;
     private Transform legacyShelfRoot;
@@ -72,6 +76,11 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void Awake()
     {
+        if (!ServiceLocator.TryResolve<IPlatformContext>(out platformContext))
+        {
+            platformContext = new CommonPlatformContext();
+        }
+
         ConfigureLogger();
         LogInfo("Awake start");
         NormalizeConfiguredCounts();
@@ -768,8 +777,29 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        var eventSystemObj = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        var eventSystemObj = new GameObject("EventSystem", typeof(EventSystem));
+        TryAttachInputModule(eventSystemObj);
         eventSystemObj.transform.SetParent(null, false);
+    }
+
+    private void TryAttachInputModule(GameObject eventSystemObj)
+    {
+        if (eventSystemObj == null)
+        {
+            return;
+        }
+
+        if (platformContext != null && platformContext.Current != PlatformType.Common)
+        {
+            var touchModuleType = Type.GetType("UnityEngine.EventSystems.TouchInputModule, UnityEngine.UI");
+            if (touchModuleType != null && typeof(BaseInputModule).IsAssignableFrom(touchModuleType))
+            {
+                eventSystemObj.AddComponent(touchModuleType);
+                return;
+            }
+        }
+
+        eventSystemObj.AddComponent<StandaloneInputModule>();
     }
 
     private Vector3 ViewportToWorldOnPlane(Camera cameraRef, Vector2 viewportPoint)

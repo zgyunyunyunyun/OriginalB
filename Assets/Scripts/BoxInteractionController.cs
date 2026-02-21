@@ -1,4 +1,7 @@
 using System.Collections;
+using OriginalB.Platform.Core;
+using OriginalB.Platform.Interfaces;
+using OriginalB.Platform.Services.Common;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -36,9 +39,15 @@ public class BoxInteractionController : MonoBehaviour
     private bool isMovingToShelf;
     private Quaternion shelfTopRotation;
     private Coroutine animationRoutine;
+    private IInputService inputService;
 
     private void Awake()
     {
+        if (!ServiceLocator.TryResolve<IInputService>(out inputService))
+        {
+            inputService = new CommonInputService();
+        }
+
         cachedCamera = Camera.main;
         shelfTopPosition = transform.position;
         shelfTopRotation = transform.rotation;
@@ -53,7 +62,7 @@ public class BoxInteractionController : MonoBehaviour
             return;
         }
 
-        if (Input.GetMouseButtonDown(0) && !IsPointerOnThisBox())
+        if (IsPointerDown() && !IsPointerOnThisBox())
         {
             if (TryMoveToShelfUnderPointer(true))
             {
@@ -233,7 +242,8 @@ public class BoxInteractionController : MonoBehaviour
             return transform.position;
         }
 
-        var screen = Input.mousePosition;
+        var pointer = GetPointerScreenPosition();
+        var screen = new Vector3(pointer.x, pointer.y, 0f);
         screen.z = cameraDepth > 0.01f ? cameraDepth : Mathf.Abs(transform.position.z - cachedCamera.transform.position.z);
         var world = cachedCamera.ScreenToWorldPoint(screen);
         world.z = transform.position.z;
@@ -252,8 +262,11 @@ public class BoxInteractionController : MonoBehaviour
             return false;
         }
 
-        var world = cachedCamera.ScreenToWorldPoint(Input.mousePosition);
-        var point = new Vector2(world.x, world.y);
+        if (!TryGetPointerPoint(out var point))
+        {
+            return false;
+        }
+
         var hits = Physics2D.OverlapPointAll(point, ~0);
         if (hits == null || hits.Length == 0)
         {
@@ -419,8 +432,11 @@ public class BoxInteractionController : MonoBehaviour
             return false;
         }
 
-        var world = cachedCamera.ScreenToWorldPoint(Input.mousePosition);
-        var point = new Vector2(world.x, world.y);
+        if (!TryGetPointerPoint(out var point))
+        {
+            return false;
+        }
+
         var hits = Physics2D.OverlapPointAll(point, ~0);
         for (var i = 0; i < hits.Length; i++)
         {
@@ -653,7 +669,7 @@ public class BoxInteractionController : MonoBehaviour
 
     private void TryRunGlobalClickProbe()
     {
-        if (!enableInteractionDebugLog || !Input.GetMouseButtonDown(0))
+        if (!enableInteractionDebugLog || !IsPointerDown())
         {
             return;
         }
@@ -675,8 +691,11 @@ public class BoxInteractionController : MonoBehaviour
             return;
         }
 
-        var world = cachedCamera.ScreenToWorldPoint(Input.mousePosition);
-        var point = new Vector2(world.x, world.y);
+        if (!TryGetPointerPoint(out var point))
+        {
+            return;
+        }
+
         var hits = Physics2D.OverlapPointAll(point, ~0);
         LogInfo($"GlobalClickProbe | point={point} | hitCount={(hits != null ? hits.Length : 0)}");
 
@@ -750,5 +769,35 @@ public class BoxInteractionController : MonoBehaviour
     private static void LogWarn(string message)
     {
         GameDebugLogger.Warn(LogTag, message);
+    }
+
+    private bool IsPointerDown()
+    {
+        return inputService != null ? inputService.GetPointerDown() : Input.GetMouseButtonDown(0);
+    }
+
+    private Vector2 GetPointerScreenPosition()
+    {
+        return inputService != null ? inputService.GetPointerScreenPosition() : Input.mousePosition;
+    }
+
+    private bool TryGetPointerPoint(out Vector2 point)
+    {
+        point = default;
+        if (cachedCamera == null)
+        {
+            cachedCamera = Camera.main;
+        }
+
+        if (cachedCamera == null)
+        {
+            return false;
+        }
+
+        var pointer = GetPointerScreenPosition();
+        var depth = cameraDepth > 0.01f ? cameraDepth : Mathf.Abs(transform.position.z - cachedCamera.transform.position.z);
+        var world = cachedCamera.ScreenToWorldPoint(new Vector3(pointer.x, pointer.y, depth));
+        point = new Vector2(world.x, world.y);
+        return true;
     }
 }
