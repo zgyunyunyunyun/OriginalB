@@ -17,6 +17,7 @@ public class BoxInteractionController : MonoBehaviour
     [SerializeField, Min(0f)] private float swayFrequency = 2.2f;
     [SerializeField, Min(0f)] private float swayAngle = 7f;
     [SerializeField, Min(0f)] private float clickMoveSpeed = 8f;
+    [SerializeField, Min(0f)] private float liftClickCooldown = 0.1f;
     [SerializeField]
     private AnimationCurve clickMoveEase = new AnimationCurve(
         new Keyframe(0f, 0f, 2.5f, 2.5f),
@@ -36,7 +37,10 @@ public class BoxInteractionController : MonoBehaviour
     private bool pointerHeld;
     private bool dragging;
     private bool isSwaying;
+    private bool pointerDownCollapsedSwaying;
     private bool isMovingToShelf;
+    private int lastLiftAttemptFrame = -1;
+    private float lastLiftAcceptedTime = -999f;
     private Quaternion shelfTopRotation;
     private Coroutine animationRoutine;
     private IInputService inputService;
@@ -81,22 +85,36 @@ public class BoxInteractionController : MonoBehaviour
 
     private void OnMouseDown()
     {
+        pointerDownCollapsedSwaying = false;
         LogInteraction("OnMouseDown enter");
 
         if (activeSwayingBox != null && activeSwayingBox != this)
         {
-            var movedByClickMode = activeSwayingBox.TryMoveToShelfAtPointer(true);
-            if (movedByClickMode)
+            if (TryGetCurrentShelf(out var clickedShelf) && clickedShelf != null)
             {
-                LogInteraction("OnMouseDown consumed by active swaying box move");
-                pointerHeld = false;
-                dragging = false;
-                return;
+                TryHandleShelfClickWithActiveSwaying(clickedShelf);
             }
+            else
+            {
+                activeSwayingBox.SnapBackToShelfTop(false);
+            }
+
+            pointerHeld = false;
+            dragging = false;
+            LogInteraction("OnMouseDown consumed by active swaying box");
+            return;
         }
 
         if (!CanInteract())
         {
+            if (TryRedirectClickToShelfTopBox())
+            {
+                pointerHeld = false;
+                dragging = false;
+                LogInteraction("OnMouseDown redirected to shelf top box");
+                return;
+            }
+
             pointerHeld = false;
             dragging = false;
             LogInteraction("OnMouseDown blocked: CanInteract=false");
@@ -123,15 +141,15 @@ public class BoxInteractionController : MonoBehaviour
         if (isSwaying)
         {
             SnapBackToShelfTop(true);
+            pointerDownCollapsedSwaying = true;
         }
-
-        shelfTopPosition = transform.position;
-        shelfTopRotation = transform.rotation;
 
         if (animationRoutine != null)
         {
-            StopCoroutine(animationRoutine);
-            animationRoutine = null;
+            pointerHeld = false;
+            dragging = false;
+            LogInteraction("OnMouseDown blocked: animation in progress");
+            return;
         }
 
         pointerHeld = true;
@@ -183,6 +201,7 @@ public class BoxInteractionController : MonoBehaviour
         if (dragging)
         {
             dragging = false;
+            pointerDownCollapsedSwaying = false;
             LogInteraction("OnMouseUp after drag, try place");
             if (TryMoveToShelfUnderPointer(false))
             {
@@ -195,14 +214,116 @@ public class BoxInteractionController : MonoBehaviour
             return;
         }
 
+        if (pointerDownCollapsedSwaying)
+        {
+            pointerDownCollapsedSwaying = false;
+            LogInteraction("OnMouseUp click toggle-off");
+            return;
+        }
+
         if (!CanInteract())
         {
+            pointerDownCollapsedSwaying = false;
             LogInteraction("OnMouseUp click blocked: CanInteract=false");
             return;
         }
 
+        if (animationRoutine != null)
+        {
+            pointerDownCollapsedSwaying = false;
+            LogInteraction("OnMouseUp click blocked: animation in progress");
+            return;
+        }
+
         LogInteraction("OnMouseUp click -> lift and sway");
+        TryStartLiftAndSwayByClick();
+        pointerDownCollapsedSwaying = false;
+    }
+
+    public bool TryStartLiftAndSwayByClick()
+    {
+        if (lastLiftAttemptFrame == Time.frameCount)
+        {
+            LogInteraction("TryStartLiftAndSwayByClick blocked: duplicate attempt in same frame");
+            return false;
+        }
+
+        lastLiftAttemptFrame = Time.frameCount;
+
+        if (!CanInteract())
+        {
+            LogInteraction("TryStartLiftAndSwayByClick blocked: CanInteract=false");
+            return false;
+        }
+
+        if (activeSwayingBox != null && activeSwayingBox != this)
+        {
+            LogInteraction("TryStartLiftAndSwayByClick blocked: another box is awaiting placement");
+            return false;
+        }
+
+        if (animationRoutine != null)
+        {
+            LogInteraction("TryStartLiftAndSwayByClick blocked: animation in progress");
+            return false;
+        }
+
+        if (Time.unscaledTime - lastLiftAcceptedTime < Mathf.Max(0f, liftClickCooldown))
+        {
+            LogInteraction("TryStartLiftAndSwayByClick blocked: click cooldown");
+            return false;
+        }
+
+        if (isSwaying)
+        {
+            SnapBackToShelfTop(true);
+            LogInteraction("TryStartLiftAndSwayByClick toggle-off");
+            return false;
+        }
+
+        NormalizeToShelfTopIfPossible();
+        shelfTopPosition = transform.position;
+        shelfTopRotation = transform.rotation;
+        lastLiftAcceptedTime = Time.unscaledTime;
+
         animationRoutine = StartCoroutine(PlayLiftAndEnterSway());
+        return true;
+    }
+
+    public static bool TryHandleShelfClickWithActiveSwaying(ShelfInteractionController targetShelf)
+    {
+        var swayingBox = activeSwayingBox;
+        if (swayingBox == null || targetShelf == null)
+        {
+            return false;
+        }
+
+        if (swayingBox.TryGetCurrentShelf(out var activeShelf) && activeShelf == targetShelf)
+        {
+            swayingBox.SnapBackToShelfTop(false);
+            swayingBox.LogInteraction("ShelfClick consumed: same shelf -> toggle-off active swaying box");
+            return true;
+        }
+
+        if (swayingBox.TryPlaceOnShelf(targetShelf, true))
+        {
+            swayingBox.LogInteraction($"ShelfClick consumed: moved active swaying box to shelf={targetShelf.name}");
+            return true;
+        }
+
+        swayingBox.SnapBackToShelfTop(false);
+        swayingBox.LogInteraction($"ShelfClick consumed: place failed -> snap back active swaying box | target={targetShelf.name}");
+        return true;
+    }
+
+    public static bool TryMoveActiveSwayingBoxToShelf(ShelfInteractionController targetShelf, bool animateMove)
+    {
+        if (activeSwayingBox == null || targetShelf == null)
+        {
+            return false;
+        }
+
+        return activeSwayingBox.TryPlaceOnShelf(targetShelf, animateMove);
     }
 
     private void OnDisable()
@@ -216,6 +337,7 @@ public class BoxInteractionController : MonoBehaviour
         isMovingToShelf = false;
         pointerHeld = false;
         dragging = false;
+        pointerDownCollapsedSwaying = false;
     }
 
     private bool CanInteract()
@@ -482,6 +604,34 @@ public class BoxInteractionController : MonoBehaviour
         return true;
     }
 
+    private bool TryRedirectClickToShelfTopBox()
+    {
+        if (!TryGetCurrentShelf(out var currentShelf) || currentShelf == null || currentShelf.StackRoot == null)
+        {
+            return false;
+        }
+
+        var topIndex = currentShelf.StackRoot.childCount - 1;
+        if (topIndex < 0)
+        {
+            return false;
+        }
+
+        var topTransform = currentShelf.StackRoot.GetChild(topIndex);
+        if (topTransform == null || topTransform == transform)
+        {
+            return false;
+        }
+
+        var topBox = topTransform.GetComponent<BoxInteractionController>();
+        if (topBox == null)
+        {
+            return false;
+        }
+
+        return topBox.TryStartLiftAndSwayByClick();
+    }
+
     private bool TryGetColorType(out GameManager.BoxColor color)
     {
         color = GameManager.BoxColor.Red;
@@ -492,6 +642,74 @@ public class BoxInteractionController : MonoBehaviour
         }
 
         color = state.OriginalColorType;
+        return true;
+    }
+
+    private void NormalizeToShelfTopIfPossible()
+    {
+        if (!TryGetCurrentShelf(out var shelf) || shelf == null)
+        {
+            return;
+        }
+
+        if (!shelf.IsTopBox(transform))
+        {
+            return;
+        }
+
+        if (!TryResolveCurrentShelfRestBottom(shelf, out var bottom))
+        {
+            return;
+        }
+
+        transform.rotation = shelf.transform.rotation;
+        if (!TryAlignBoxAndGetTop(transform, bottom, out _))
+        {
+            transform.position = bottom;
+        }
+    }
+
+    private bool TryResolveCurrentShelfRestBottom(ShelfInteractionController shelf, out Vector3 bottom)
+    {
+        bottom = shelf.transform.position;
+        if (shelf.StackRoot == null)
+        {
+            return false;
+        }
+
+        var selfIndex = transform.GetSiblingIndex();
+        if (selfIndex > 0)
+        {
+            var below = shelf.StackRoot.GetChild(selfIndex - 1);
+            if (below != null)
+            {
+                if (TryGetAnchorPair(below, out _, out var topAnchor) && topAnchor != null)
+                {
+                    bottom = topAnchor.position;
+                    return true;
+                }
+
+                if (TryGetTopByBounds(below, out var topByBounds))
+                {
+                    bottom = topByBounds;
+                    return true;
+                }
+            }
+        }
+
+        if (TryGetAnchorPair(shelf.transform, out var shelfBottomAnchor, out _) && shelfBottomAnchor != null)
+        {
+            bottom = shelfBottomAnchor.position;
+            return true;
+        }
+
+        if (TryGetBottomByBounds(shelf.transform, out var shelfBottomByBounds))
+        {
+            bottom = shelfBottomByBounds;
+            return true;
+        }
+
+        bottom = shelf.transform.position;
         return true;
     }
 
@@ -543,6 +761,46 @@ public class BoxInteractionController : MonoBehaviour
             }
         }
 
+        return false;
+    }
+
+    private static bool TryGetTopByBounds(Transform target, out Vector3 top)
+    {
+        var renderer = target.GetComponentInChildren<Renderer>(true);
+        if (renderer != null)
+        {
+            top = new Vector3(renderer.bounds.center.x, renderer.bounds.max.y, target.position.z);
+            return true;
+        }
+
+        var spriteRenderer = target.GetComponentInChildren<SpriteRenderer>(true);
+        if (spriteRenderer != null)
+        {
+            top = new Vector3(spriteRenderer.bounds.center.x, spriteRenderer.bounds.max.y, target.position.z);
+            return true;
+        }
+
+        top = target.position;
+        return false;
+    }
+
+    private static bool TryGetBottomByBounds(Transform target, out Vector3 bottom)
+    {
+        var renderer = target.GetComponentInChildren<Renderer>(true);
+        if (renderer != null)
+        {
+            bottom = new Vector3(renderer.bounds.center.x, renderer.bounds.min.y, target.position.z);
+            return true;
+        }
+
+        var spriteRenderer = target.GetComponentInChildren<SpriteRenderer>(true);
+        if (spriteRenderer != null)
+        {
+            bottom = new Vector3(spriteRenderer.bounds.center.x, spriteRenderer.bounds.min.y, target.position.z);
+            return true;
+        }
+
+        bottom = target.position;
         return false;
     }
 

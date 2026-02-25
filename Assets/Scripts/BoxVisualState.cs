@@ -33,6 +33,12 @@ public class BoxVisualState : MonoBehaviour
             hasRevealedOriginalPermanently = true;
         }
 
+        if (hasRevealedOriginalPermanently)
+        {
+            isGrayed = false;
+            currentDisplayColor = originalDisplayColor;
+        }
+
         var targetColor = hasRevealedOriginalPermanently ? originalDisplayColor : currentDisplayColor;
         ApplyDisplayColor(targetColor);
     }

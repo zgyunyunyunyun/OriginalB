@@ -74,7 +74,7 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private bool catShrinkTowardTargetBox = true;
     [SerializeField, Min(0f)] private float catStayDuration = 0.3f;
     [SerializeField, Min(10f)] private float catMoveSpeed = 900f;
-    [SerializeField, Min(0.01f)] private float catShrinkSpeed = 1.8f;
+    [SerializeField, Min(0.01f)] private float catShrinkSpeed = 3.2f;
     [SerializeField, Range(0.01f, 1f)] private float catMinScaleFactor = 0.15f;
     [SerializeField] private string catHintMessage = "找到躲在箱子里的小猫";
     [SerializeField, Min(0f)] private float catHintDuration = 2f;
@@ -93,7 +93,9 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private Vector2 previousLevelButtonPosition = new Vector2(-200f, -48f);
     [SerializeField] private Vector2 nextLevelButtonPosition = new Vector2(200f, -48f);
     [SerializeField] private Vector2 levelIndicatorSize = new Vector2(260f, 52f);
-    [SerializeField] private Vector2 levelIndicatorPosition = new Vector2(24f, -24f);
+    [SerializeField] private Vector2 levelIndicatorPosition = new Vector2(0f, -24f);
+    [SerializeField, Min(10)] private int levelIndicatorFontSize = 30;
+    [SerializeField] private bool centerLevelIndicator = true;
     [SerializeField] private bool showSaveLevelButtonInDesignMode = true;
     [SerializeField] private string saveLevelButtonText = "保存关卡";
     [SerializeField] private Vector2 saveLevelButtonSize = new Vector2(180f, 52f);
@@ -111,7 +113,89 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private string enterDesignModeButtonText = "进入设计模式";
     [SerializeField] private string enterGameModeButtonText = "进入游戏模式";
     [SerializeField] private Vector2 modeToggleButtonSize = new Vector2(260f, 56f);
-    [SerializeField] private Vector2 modeToggleButtonPosition = new Vector2(0f, 32f);
+    [SerializeField] private Vector2 modeToggleButtonPosition = new Vector2(-120f, -96f);
+
+    [Header("Gameplay Action Buttons")]
+    [SerializeField] private bool showGameplayActionButtons = true;
+    [SerializeField] private Button refreshActionButton;
+    [SerializeField] private Button undoActionButton;
+    [SerializeField] private Button addEmptyShelfActionButton;
+    [SerializeField] private string refreshActionButtonText = "刷新";
+    [SerializeField] private string undoActionButtonText = "回退";
+    [SerializeField] private string addEmptyShelfActionButtonText = "新增空货架";
+    [SerializeField] private Vector2 gameplayActionButtonSize = new Vector2(180f, 56f);
+    [SerializeField] private Vector2 refreshActionButtonPosition = new Vector2(-220f, 24f);
+    [SerializeField] private Vector2 undoActionButtonPosition = new Vector2(0f, 24f);
+    [SerializeField] private Vector2 addEmptyShelfActionButtonPosition = new Vector2(220f, 24f);
+    [SerializeField, Min(0.01f)] private float refreshShakeDuration = 0.45f;
+    [SerializeField, Min(0f)] private float refreshShakeAmplitude = 0.12f;
+    [SerializeField, Min(0.1f)] private float refreshShakeFrequency = 8f;
+
+    [Header("Restart Settings UI")]
+    [SerializeField] private bool showRestartSettingsButton = true;
+    [SerializeField] private string restartSettingsButtonText = "设置";
+    [SerializeField] private Vector2 restartSettingsButtonSize = new Vector2(132f, 52f);
+    [SerializeField] private Vector2 restartSettingsButtonPosition = new Vector2(-80f, -24f);
+    [SerializeField] private Color restartSettingsOverlayColor = new Color(0f, 0f, 0f, 0.58f);
+    [SerializeField] private Vector2 restartSettingsPanelSize = new Vector2(420f, 240f);
+    [SerializeField] private Vector2 restartSettingsPanelPosition = Vector2.zero;
+    [SerializeField] private Color restartSettingsPanelColor = new Color(0.08f, 0.12f, 0.18f, 0.96f);
+    [SerializeField] private string restartConfirmButtonText = "重新开始";
+    [SerializeField] private Vector2 restartConfirmButtonSize = new Vector2(240f, 64f);
+    [SerializeField] private Vector2 restartConfirmButtonPosition = new Vector2(0f, -80f);
+    [SerializeField, Range(0f, 1f)] private float restartColorChangeRatioMin = 0.2f;
+    [SerializeField, Range(0f, 1f)] private float restartColorChangeRatioMax = 0.45f;
+
+    [Header("Test Tools")]
+    [SerializeField] private bool showTestClearSaveButton = true;
+    [SerializeField] private string testClearSaveButtonText = "测试清档";
+    [SerializeField] private Vector2 testClearSaveButtonSize = new Vector2(180f, 52f);
+    [SerializeField] private Vector2 testClearSaveButtonPosition = new Vector2(-120f, 24f);
+
+    [Header("Economy")]
+    [SerializeField] private bool showEconomyHud = true;
+    [SerializeField] private string coinIconText = "🪙";
+    [SerializeField] private string staminaIconText = "⚡";
+    [SerializeField] private Vector2 coinHudPosition = new Vector2(-280f, -24f);
+    [SerializeField] private Vector2 staminaHudPosition = new Vector2(-96f, -24f);
+    [SerializeField] private Vector2 economyHudItemSize = new Vector2(170f, 52f);
+    [SerializeField] private Vector2 staminaHudItemSize = new Vector2(320f, 52f);
+    [SerializeField, Min(12)] private int economyHudFontSize = 28;
+    [SerializeField, Min(0)] private int initialCoinCount = 0;
+    [SerializeField, Min(0)] private int initialStaminaCount = 5;
+    [SerializeField, Min(1)] private int staminaRecoveryMax = 5;
+    [SerializeField, Min(1)] private int staminaRecoveryIntervalMinutes = 10;
+    [FormerlySerializedAs("staminaCostOnFirstMove")]
+    [SerializeField, Min(0)] private int staminaCostOnRestart = 1;
+    [SerializeField] private string staminaInsufficientBubbleText = "爱心不足，无法重新开始";
+    [SerializeField] private Vector2 staminaInsufficientBubbleSize = new Vector2(620f, 72f);
+    [SerializeField] private Vector2 staminaInsufficientBubblePosition = new Vector2(0f, 120f);
+    [SerializeField, Min(0.1f)] private float staminaInsufficientBubbleDuration = 1.8f;
+    [SerializeField, Min(0)] private int winRewardCoinCount = 10;
+    [SerializeField] private bool persistEconomyData = true;
+
+    [Header("Win Result Panel")]
+    [SerializeField] private Vector2 winResultPanelSize = new Vector2(760f, 460f);
+    [SerializeField] private Vector2 winResultPanelPosition = Vector2.zero;
+    [SerializeField] private Color winResultPanelBackgroundColor = new Color(0.40f, 0.27f, 0.12f, 1f);
+    [SerializeField] private Vector2 winResultTitleSize = new Vector2(680f, 96f);
+    [SerializeField] private Vector2 winResultTitlePosition = new Vector2(0f, -120f);
+    [SerializeField, Min(12)] private int winResultTitleFontSize = 52;
+    [SerializeField] private Vector2 winResultRewardSize = new Vector2(680f, 82f);
+    [SerializeField] private Vector2 winResultRewardPosition = new Vector2(0f, -220f);
+    [SerializeField, Min(12)] private int winResultRewardFontSize = 42;
+    [SerializeField] private string winRewardTextPrefix = "获得金币";
+    [SerializeField] private Vector2 winResultNextLevelButtonSize = new Vector2(280f, 68f);
+    [SerializeField] private Vector2 winResultNextLevelButtonPosition = new Vector2(0f, -330f);
+    [SerializeField] private string winResultNextLevelButtonText = "下一关";
+
+    [Header("Add Shelf Placement")]
+    [SerializeField] private Transform additionalShelfPlacementArea;
+    [SerializeField] private Vector2 additionalShelfPlacementAreaSize = new Vector2(10f, 8f);
+    [SerializeField, Min(0f)] private float addShelfMinGap = 0.12f;
+    [SerializeField] private bool avoidUiButtonsWhenAddShelf = true;
+    [SerializeField] private bool allowAddShelfOutsideAreaWhenFull = true;
+    [SerializeField] private bool enableAddShelfPlacementReport = true;
 
     [Header("Legacy Migration")]
     [SerializeField] private bool migrateSceneShelvesOnRefresh = true;
@@ -122,6 +206,8 @@ public class ShelfSpawnManager : MonoBehaviour
     [Header("Debug Log")]
     [SerializeField] private bool enableDebugLog = true;
     [SerializeField] private bool enableDebugFileLog = true;
+    [SerializeField] private bool enableEliminationSnapshotLog = true;
+    [SerializeField, Min(0f)] private float eliminationSnapshotLogCooldown = 0.1f;
 
     private readonly List<GameObject> spawnedShelves = new List<GameObject>();
     private IPlatformContext platformContext;
@@ -135,11 +221,21 @@ public class ShelfSpawnManager : MonoBehaviour
     private Button nextLevelButton;
     private Button saveLevelButton;
     private Text levelIndicatorTextRef;
+    private Text coinHudTextRef;
+    private Text staminaHudTextRef;
     private RectTransform designToolsPanelRoot;
     private Text shelfColumnCountTextRef;
     private Text colorTypeCountTextRef;
     private Button refreshColorsButton;
     private Button modeToggleButton;
+    private Button restartSettingsButton;
+    private RectTransform restartSettingsOverlayRoot;
+    private RectTransform restartSettingsPanelRoot;
+    private Button restartFromSettingsButton;
+    private RectTransform staminaInsufficientBubbleRoot;
+    private Text staminaInsufficientBubbleTextRef;
+    private Coroutine staminaInsufficientBubbleRoutine;
+    private Button testClearSaveButton;
     private RectTransform columnControlAreaRoot;
     private readonly List<int> columnShelfCounts = new List<int>();
     private readonly List<float> columnVerticalOffsets = new List<float>();
@@ -152,21 +248,44 @@ public class ShelfSpawnManager : MonoBehaviour
     private bool gameWon;
     private Coroutine catIntroRoutine;
     private Coroutine catHintRoutine;
+    private Coroutine refreshShakeRoutine;
     private GameObject runtimeCatIntro;
     private GameObject runtimeCatIntroUi;
     private Text catHintTextRef;
     private Text catWinTextRef;
     private Image dimOverlayImage;
+    private RectTransform winResultPanelRoot;
+    private Text winResultTitleTextRef;
+    private Text winResultRewardTextRef;
+    private Button winResultNextLevelButtonRef;
     private RectTransform shelfConfigOverlayRoot;
     private RectTransform shelfConfigContentRoot;
     private Text shelfConfigTitleText;
     private Text shelfConfigBoxCountText;
     private Text shelfConfigGrayCountText;
+    private Text shelfConfigColorConfigText;
+    private readonly List<Button> shelfConfigColorButtons = new List<Button>();
     private ShelfInteractionController editingShelfConfig;
     private int editingShelfBoxCount;
     private int editingShelfGrayCount;
+    private bool waitingRefreshShelfSelection;
+    private bool hidePrimaryControlButtons;
+    private bool staminaConsumedForCurrentRound;
+    private bool applyRestartColorVariationOnNextRefresh;
+    private int currentCoinCount;
+    private int currentStaminaCount;
+    private long staminaRecoveryStartUtcTicks = -1L;
+    private float nextStaminaRecoveryUiRefreshTime;
+    private int addShelfAttemptSequence;
+    private float nextEliminationSnapshotLogTime;
     private const string DesignedLevelFolderName = "DesignedLevels";
     private const string DesignedLevelsFileName = "designed_levels.json";
+    private const string EconomyCoinPrefKey = "ShelfSpawn.Economy.Coin";
+    private const string EconomyStaminaPrefKey = "ShelfSpawn.Economy.Stamina";
+    private const string EconomyStaminaRecoveryStartTicksPrefKey = "ShelfSpawn.Economy.StaminaRecoveryStartUtcTicks";
+    private readonly Stack<VisualMoveRecord> visualMoveHistory = new Stack<VisualMoveRecord>();
+    private static readonly Vector2 LegacyModeToggleButtonPosition = new Vector2(0f, 32f);
+    private static readonly Vector2 DefaultTopRightModeToggleButtonPosition = new Vector2(-120f, -96f);
 
     private class TruckRuntimeData
     {
@@ -174,6 +293,41 @@ public class ShelfSpawnManager : MonoBehaviour
         public Transform bottomAnchor;
         public GameManager.BoxColor color;
         public bool busy;
+    }
+
+    private class VisualMoveRecord
+    {
+        public int fromShelfIndex;
+        public int toShelfIndex;
+        public Transform movedBox;
+    }
+
+    private class AddShelfPlacementReport
+    {
+        public int attempt;
+        public bool areaConfigured;
+        public bool areaResolved;
+        public bool areaIntersectionApplied;
+        public bool areaIntersectionInvalid;
+        public bool areaResolveFailed;
+        public bool usedScreenFallback;
+        public bool fallbackUsed;
+        public bool fallbackOverlaps;
+        public int existingShelfCount;
+        public int candidateCount;
+        public int rejectedByShelfOverlap;
+        public int rejectedByButtons;
+        public int acceptedCount;
+        public int bestUpdatedCount;
+        public Vector2 halfExtents;
+        public Rect screenRect;
+        public Rect areaRect;
+        public Rect placementRect;
+        public float bestMinDistance;
+        public float requiredSpacingX;
+        public float requiredSpacingY;
+        public int estimatedGridCapacity;
+        public string selectionPath;
     }
 
     [Serializable]
@@ -207,6 +361,7 @@ public class ShelfSpawnManager : MonoBehaviour
     private class DesignedBoxData
     {
         public GameManager.BoxColor color;
+        public bool grayed;
     }
 
     private enum CatUiType
@@ -219,6 +374,12 @@ public class ShelfSpawnManager : MonoBehaviour
     public RuntimeMode CurrentRuntimeMode => runtimeMode;
     public bool IsLevelDesignMode => runtimeMode == RuntimeMode.LevelDesignMode;
     public int CurrentLevelIndex => Mathf.Max(1, currentLevelIndex);
+
+    public void SetPrimaryControlButtonsHidden(bool hidden)
+    {
+        hidePrimaryControlButtons = hidden;
+        ApplyPrimaryControlButtonsVisibility();
+    }
 
     public void SetBoxGenerationManager(BoxGenerationManager manager)
     {
@@ -251,18 +412,79 @@ public class ShelfSpawnManager : MonoBehaviour
         EnsureLevelNavigationUI();
         EnsureSaveLevelButton();
         EnsureModeToggleButton();
+        EnsureEconomyHud();
+        EnsureWinResultPanel();
+        EnsureGameplayActionButtons();
+        EnsureRestartSettingsButton();
+        EnsureTestClearSaveButton();
         EnsureDesignToolsPanel();
         EnsureColumnControlArea();
         UpdateLevelIndicator();
+        InitializeEconomyState();
+        UpdateEconomyHud();
         UpdateDesignToolsTexts();
         ApplyDesignToolsVisibility();
         UpdateModeToggleButtonLabel();
+        ApplyPrimaryControlButtonsVisibility();
         LogInfo($"Awake end | shelfPrefab={(shelfPrefab != null ? shelfPrefab.name : "NULL")} | boxPrefab={(boxPrefab != null ? boxPrefab.name : "NULL")} | carPrefab={(carPrefab != null ? carPrefab.name : "NULL")} | catPrefab={(catPrefab != null ? catPrefab.name : "NULL")}");
     }
 
     private void Update()
     {
+        HandleStaminaRecoveryTick();
+        HandleCatOverlayDismissInput();
+        HandleRefreshShelfSelectionInput();
         HandleDesignShelfConfigInput();
+    }
+
+    private void HandleCatOverlayDismissInput()
+    {
+        if (!IsCatOverlayInteractiveState())
+        {
+            return;
+        }
+
+        if (!IsAnyPointerDown())
+        {
+            return;
+        }
+
+        DismissCatOverlayFlow();
+    }
+
+    private bool IsCatOverlayInteractiveState()
+    {
+        if (dimOverlayImage == null || !dimOverlayImage.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        if (runtimeCatIntroUi != null || catIntroRoutine != null || catHintRoutine != null)
+        {
+            return true;
+        }
+
+        return catHintTextRef != null && catHintTextRef.gameObject.activeInHierarchy;
+    }
+
+    private void DismissCatOverlayFlow()
+    {
+        HideDimOverlay();
+
+        if (catIntroRoutine != null)
+        {
+            StopCoroutine(catIntroRoutine);
+            catIntroRoutine = null;
+        }
+
+        if (catHintRoutine != null)
+        {
+            StopCoroutine(catHintRoutine);
+            catHintRoutine = null;
+        }
+
+        StopCatIntroVisual();
+        HideHintMessage();
     }
 
     public void RefreshShelves(int shelfCount)
@@ -274,12 +496,19 @@ public class ShelfSpawnManager : MonoBehaviour
         EnsureLevelNavigationUI();
         EnsureSaveLevelButton();
         EnsureModeToggleButton();
+        EnsureEconomyHud();
+        EnsureWinResultPanel();
+        EnsureGameplayActionButtons();
+        EnsureRestartSettingsButton();
+        EnsureTestClearSaveButton();
         EnsureDesignToolsPanel();
         EnsureColumnControlArea();
         UpdateLevelIndicator();
+        UpdateEconomyHud();
         UpdateDesignToolsTexts();
         ApplyDesignToolsVisibility();
         UpdateModeToggleButtonLabel();
+        ApplyPrimaryControlButtonsVisibility();
         EnsureShelfRoot();
         EnsureShelfSubRoots();
         TryAutoBindShelfPrefab();
@@ -296,7 +525,12 @@ public class ShelfSpawnManager : MonoBehaviour
         HideWinMessage();
         HideHintMessage();
         StopCatIntroVisual();
+        HideWinResultPanel();
+        HideRestartSettingsOverlay();
         CloseShelfConfigOverlay();
+        waitingRefreshShelfSelection = false;
+        staminaConsumedForCurrentRound = false;
+        visualMoveHistory.Clear();
 
         if (migrateSceneShelvesOnRefresh)
         {
@@ -447,6 +681,23 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
+        if (sourceShelf != null
+            && targetShelf != null
+            && targetShelf.StackRoot != null
+            && targetShelf.StackRoot.childCount > 0)
+        {
+            var moved = targetShelf.StackRoot.GetChild(targetShelf.StackRoot.childCount - 1);
+            if (moved != null)
+            {
+                visualMoveHistory.Push(new VisualMoveRecord
+                {
+                    fromShelfIndex = sourceShelf.ShelfIndex,
+                    toShelfIndex = targetShelf.ShelfIndex,
+                    movedBox = moved
+                });
+            }
+        }
+
         if (!truckEliminationRunning)
         {
             StartCoroutine(ProcessTruckEliminationsRoutine());
@@ -481,6 +732,7 @@ public class ShelfSpawnManager : MonoBehaviour
         ApplyLevelNavigationVisibility();
         ApplySaveLevelButtonVisibility();
         ApplyDesignToolsVisibility();
+        ApplyRestartSettingsButtonVisibility();
         UpdateModeToggleButtonLabel();
         UpdateLevelIndicator();
         UpdateDesignToolsTexts();
@@ -696,6 +948,114 @@ public class ShelfSpawnManager : MonoBehaviour
         }
     }
 
+    private void ApplyRestartColorVariationOnCurrentBoard()
+    {
+        var colorPool = ResolveLimitedColorPool();
+        if (colorPool == null || colorPool.Count <= 1)
+        {
+            return;
+        }
+
+        var candidateBoxes = new List<Transform>();
+        var ownerShelves = new List<ShelfInteractionController>();
+        for (var i = 0; i < spawnedShelves.Count; i++)
+        {
+            var shelfGo = spawnedShelves[i];
+            var shelf = shelfGo != null ? shelfGo.GetComponent<ShelfInteractionController>() : null;
+            if (shelf == null || shelf.StackRoot == null)
+            {
+                continue;
+            }
+
+            for (var b = 0; b < shelf.StackRoot.childCount; b++)
+            {
+                var box = shelf.StackRoot.GetChild(b);
+                if (box == null)
+                {
+                    continue;
+                }
+
+                var state = box.GetComponent<BoxVisualState>();
+                if (state == null || state.IsGrayed)
+                {
+                    continue;
+                }
+
+                candidateBoxes.Add(box);
+                ownerShelves.Add(shelf);
+            }
+        }
+
+        if (candidateBoxes.Count <= 0)
+        {
+            return;
+        }
+
+        var minRatio = Mathf.Clamp01(restartColorChangeRatioMin);
+        var maxRatio = Mathf.Clamp01(restartColorChangeRatioMax);
+        if (maxRatio < minRatio)
+        {
+            var tmp = minRatio;
+            minRatio = maxRatio;
+            maxRatio = tmp;
+        }
+
+        var randomSeed = unchecked((int)DateTime.UtcNow.Ticks) ^ spawnSeed ^ candidateBoxes.Count * 197;
+        var rng = new System.Random(randomSeed);
+        var ratio = (float)(minRatio + (maxRatio - minRatio) * rng.NextDouble());
+        var targetChangeCount = Mathf.Clamp(Mathf.RoundToInt(candidateBoxes.Count * ratio), 1, candidateBoxes.Count);
+
+        var changedShelves = new HashSet<ShelfInteractionController>();
+        for (var i = candidateBoxes.Count - 1; i > 0; i--)
+        {
+            var swap = rng.Next(i + 1);
+            var tmpBox = candidateBoxes[i];
+            candidateBoxes[i] = candidateBoxes[swap];
+            candidateBoxes[swap] = tmpBox;
+
+            var tmpShelf = ownerShelves[i];
+            ownerShelves[i] = ownerShelves[swap];
+            ownerShelves[swap] = tmpShelf;
+        }
+
+        var changedCount = 0;
+        for (var i = 0; i < targetChangeCount; i++)
+        {
+            var box = candidateBoxes[i];
+            if (box == null)
+            {
+                continue;
+            }
+
+            var state = box.GetComponent<BoxVisualState>();
+            if (state == null)
+            {
+                continue;
+            }
+
+            var nextColor = ResolveRandomChangedColor(state.OriginalColorType, state.OriginalColorType, colorPool, rng);
+            ApplyColorForBox(box, nextColor, false);
+            ApplySortingForBox(box, box.GetSiblingIndex());
+            changedCount++;
+
+            var owner = ownerShelves[i];
+            if (owner != null)
+            {
+                changedShelves.Add(owner);
+            }
+        }
+
+        foreach (var shelf in changedShelves)
+        {
+            if (shelf != null)
+            {
+                shelf.RefreshBoxVisualStates();
+            }
+        }
+
+        LogInfo($"Restart color variation applied | changed={changedCount}/{candidateBoxes.Count} | ratio={ratio:F2}");
+    }
+
     private GameManager.BoxColor ResolveRandomChangedColor(GameManager.BoxColor previousColor, GameManager.BoxColor candidateColor, IReadOnlyList<GameManager.BoxColor> pool, System.Random rng)
     {
         if (pool == null || pool.Count <= 0)
@@ -756,12 +1116,20 @@ public class ShelfSpawnManager : MonoBehaviour
     private void FinalizeAfterShelvesSpawned()
     {
         EnsureColumnConfigState(spawnedShelves.Count, false);
+        if (!IsLevelDesignMode && applyRestartColorVariationOnNextRefresh)
+        {
+            ApplyRestartColorVariationOnCurrentBoard();
+            applyRestartColorVariationOnNextRefresh = false;
+        }
+
         ApplyBoxInteractionMode();
         ApplyLevelNavigationVisibility();
         ApplySaveLevelButtonVisibility();
         ApplyDesignToolsVisibility();
+        ApplyRestartSettingsButtonVisibility();
         UpdateModeToggleButtonLabel();
         UpdateLevelIndicator();
+        UpdateEconomyHud();
         UpdateDesignToolsTexts();
 
         if (IsLevelDesignMode)
@@ -774,6 +1142,11 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         SpawnTrucks();
+        if (!truckEliminationRunning)
+        {
+            StartCoroutine(ProcessTruckEliminationsRoutine());
+        }
+
         SetupCatFlowForCurrentBoard();
     }
 
@@ -850,7 +1223,8 @@ public class ShelfSpawnManager : MonoBehaviour
 
                 shelfData.boxes.Add(new DesignedBoxData
                 {
-                    color = state.OriginalColorType
+                    color = state.OriginalColorType,
+                    grayed = state.IsGrayed
                 });
             }
 
@@ -934,6 +1308,7 @@ public class ShelfSpawnManager : MonoBehaviour
             spawnedShelves.Add(shelf);
 
             var colors = new List<GameManager.BoxColor>();
+            var grayStates = new List<bool>();
             if (shelfData.boxes != null)
             {
                 for (var b = 0; b < shelfData.boxes.Count; b++)
@@ -941,16 +1316,51 @@ public class ShelfSpawnManager : MonoBehaviour
                     if (shelfData.boxes[b] != null)
                     {
                         colors.Add(shelfData.boxes[b].color);
+                        grayStates.Add(shelfData.boxes[b].grayed);
                     }
                 }
             }
 
             SpawnBoxesForShelf(shelf, colors, 0, colors.Count);
             EnsureShelfInteractionForRuntime(shelf, spawnCount);
+            ApplyDesignedGrayStates(shelf, colors, grayStates);
             spawnCount++;
         }
 
         LogInfo($"Spawn designed layout complete | shelfCount={spawnCount}");
+    }
+
+    private void ApplyDesignedGrayStates(GameObject shelf, IReadOnlyList<GameManager.BoxColor> colors, IReadOnlyList<bool> grayStates)
+    {
+        if (shelf == null || grayStates == null || grayStates.Count <= 0)
+        {
+            return;
+        }
+
+        var shelfInteraction = shelf.GetComponent<ShelfInteractionController>();
+        if (shelfInteraction == null || shelfInteraction.StackRoot == null || shelfInteraction.StackRoot.childCount <= 0)
+        {
+            return;
+        }
+
+        var count = Mathf.Min(shelfInteraction.StackRoot.childCount, grayStates.Count);
+        for (var i = 0; i < count; i++)
+        {
+            var box = shelfInteraction.StackRoot.GetChild(i);
+            if (box == null)
+            {
+                continue;
+            }
+
+            var state = box.GetComponent<BoxVisualState>();
+            var colorType = state != null
+                ? state.OriginalColorType
+                : ResolveColorType(colors, i);
+
+            ApplyColorForBox(box, colorType, grayStates[i]);
+        }
+
+        shelfInteraction.RefreshBoxVisualStates();
     }
 
     private string GetDesignedLevelStorageKey()
@@ -1195,8 +1605,10 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void PrepareForLevelSwitch()
     {
+        staminaConsumedForCurrentRound = false;
         gameWon = false;
         HideDimOverlay();
+        HideWinResultPanel();
         if (Mathf.Abs(Time.timeScale) < 0.0001f)
         {
             Time.timeScale = 1f;
@@ -1234,15 +1646,16 @@ public class ShelfSpawnManager : MonoBehaviour
     {
         var visible = (runtimeMode == RuntimeMode.GameMode && showLevelNavigationInGameMode)
             || (runtimeMode == RuntimeMode.LevelDesignMode && showLevelNavigationInDesignMode);
+        var navButtonsVisible = visible && !hidePrimaryControlButtons;
 
         if (previousLevelButton != null)
         {
-            previousLevelButton.gameObject.SetActive(visible);
+            previousLevelButton.gameObject.SetActive(navButtonsVisible);
         }
 
         if (nextLevelButton != null)
         {
-            nextLevelButton.gameObject.SetActive(visible);
+            nextLevelButton.gameObject.SetActive(navButtonsVisible);
         }
 
         if (levelIndicatorTextRef != null)
@@ -1271,7 +1684,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (modeToggleButton != null)
         {
-            modeToggleButton.gameObject.SetActive(true);
+            modeToggleButton.gameObject.SetActive(!hidePrimaryControlButtons);
         }
 
         if (shelfConfigOverlayRoot != null && !designVisible)
@@ -1294,6 +1707,15 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         label.text = runtimeMode == RuntimeMode.GameMode ? enterDesignModeButtonText : enterGameModeButtonText;
+    }
+
+    private void ApplyPrimaryControlButtonsVisibility()
+    {
+        ApplyLevelNavigationVisibility();
+        ApplyRegenerateButtonVisibility();
+        ApplyDesignToolsVisibility();
+        ApplyRestartSettingsButtonVisibility();
+        ApplyTestClearSaveButtonVisibility();
     }
 
     private void UpdateDesignToolsTexts()
@@ -1473,9 +1895,11 @@ public class ShelfSpawnManager : MonoBehaviour
                 shelfConfigTitleText = CreateConfigText(shelfConfigContentRoot, "Title", new Vector2(0f, -32f), new Vector2(420f, 48f), 30);
                 shelfConfigBoxCountText = CreateConfigText(shelfConfigContentRoot, "BoxCountText", new Vector2(0f, -92f), new Vector2(420f, 42f), 24);
                 shelfConfigGrayCountText = CreateConfigText(shelfConfigContentRoot, "GrayCountText", new Vector2(0f, -202f), new Vector2(420f, 42f), 24);
+                shelfConfigColorConfigText = CreateConfigText(shelfConfigContentRoot, "ColorConfigText", new Vector2(0f, -302f), new Vector2(440f, 42f), 22);
 
                 CreateConfigOptionButtons(shelfConfigContentRoot, true);
                 CreateConfigOptionButtons(shelfConfigContentRoot, false);
+                CreateConfigColorButtons(shelfConfigContentRoot);
                 CreateConfigCloseButton(shelfConfigContentRoot);
             }
         }
@@ -1500,7 +1924,7 @@ public class ShelfSpawnManager : MonoBehaviour
             shelfConfigContentRoot.anchorMin = new Vector2(0.5f, 0.5f);
             shelfConfigContentRoot.anchorMax = new Vector2(0.5f, 0.5f);
             shelfConfigContentRoot.pivot = new Vector2(0.5f, 0.5f);
-            shelfConfigContentRoot.sizeDelta = new Vector2(500f, 380f);
+            shelfConfigContentRoot.sizeDelta = new Vector2(500f, 460f);
             shelfConfigContentRoot.anchoredPosition = Vector2.zero;
         }
 
@@ -1518,6 +1942,13 @@ public class ShelfSpawnManager : MonoBehaviour
         {
             shelfConfigGrayCountText = shelfConfigOverlayRoot.Find("Content/GrayCountText")?.GetComponent<Text>();
         }
+
+        if (shelfConfigColorConfigText == null)
+        {
+            shelfConfigColorConfigText = shelfConfigOverlayRoot.Find("Content/ColorConfigText")?.GetComponent<Text>();
+        }
+
+        EnsureShelfConfigColorButtons();
     }
 
     private Text CreateConfigText(RectTransform root, string name, Vector2 anchoredPos, Vector2 size, int fontSize)
@@ -1569,7 +2000,160 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void CreateConfigCloseButton(RectTransform root)
     {
-        CreatePanelButton(root, "CloseButton", "关闭", new Vector2(0f, -320f), new Vector2(140f, 46f), CloseShelfConfigOverlay);
+        CreatePanelButton(root, "CloseButton", "关闭", new Vector2(0f, -404f), new Vector2(140f, 46f), CloseShelfConfigOverlay);
+    }
+
+    private void CreateConfigColorButtons(RectTransform root)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        shelfConfigColorButtons.Clear();
+        var startX = -180f;
+        var stepX = 120f;
+        var rowY = -352f;
+
+        for (var i = 0; i < 4; i++)
+        {
+            var index = i;
+            var button = CreatePanelButton(
+                root,
+                $"ColorSlot_{index}",
+                $"{index + 1}:空",
+                new Vector2(startX + stepX * index, rowY),
+                new Vector2(104f, 44f),
+                () => CycleEditingShelfBoxColor(index));
+
+            if (button != null)
+            {
+                shelfConfigColorButtons.Add(button);
+            }
+        }
+    }
+
+    private void EnsureShelfConfigColorButtons()
+    {
+        if (shelfConfigContentRoot == null)
+        {
+            return;
+        }
+
+        if (shelfConfigColorConfigText == null)
+        {
+            shelfConfigColorConfigText = shelfConfigContentRoot.Find("ColorConfigText")?.GetComponent<Text>();
+        }
+
+        if (shelfConfigColorConfigText == null)
+        {
+            shelfConfigColorConfigText = CreateConfigText(shelfConfigContentRoot, "ColorConfigText", new Vector2(0f, -302f), new Vector2(440f, 42f), 22);
+        }
+
+        shelfConfigColorButtons.Clear();
+        for (var i = 0; i < 4; i++)
+        {
+            var child = shelfConfigContentRoot.Find($"ColorSlot_{i}");
+            Button button = null;
+            if (child != null)
+            {
+                button = child.GetComponent<Button>();
+            }
+
+            if (button == null)
+            {
+                var index = i;
+                button = CreatePanelButton(
+                    shelfConfigContentRoot,
+                    $"ColorSlot_{index}",
+                    $"{index + 1}:空",
+                    new Vector2(-180f + 120f * index, -352f),
+                    new Vector2(104f, 44f),
+                    () => CycleEditingShelfBoxColor(index));
+            }
+
+            if (button != null)
+            {
+                var index = i;
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() => CycleEditingShelfBoxColor(index));
+
+                var rect = button.GetComponent<RectTransform>();
+                rect.anchorMin = new Vector2(0.5f, 1f);
+                rect.anchorMax = new Vector2(0.5f, 1f);
+                rect.pivot = new Vector2(0.5f, 1f);
+                rect.sizeDelta = new Vector2(104f, 44f);
+                rect.anchoredPosition = new Vector2(-180f + 120f * i, -352f);
+
+                shelfConfigColorButtons.Add(button);
+            }
+        }
+    }
+
+    private void CycleEditingShelfBoxColor(int boxIndex)
+    {
+        if (editingShelfConfig == null || editingShelfConfig.StackRoot == null)
+        {
+            return;
+        }
+
+        if (boxIndex < 0 || boxIndex >= editingShelfConfig.StackRoot.childCount)
+        {
+            return;
+        }
+
+        var box = editingShelfConfig.StackRoot.GetChild(boxIndex);
+        if (box == null)
+        {
+            return;
+        }
+
+        var state = box.GetComponent<BoxVisualState>();
+        if (state == null)
+        {
+            return;
+        }
+
+        var pool = ResolveLimitedColorPool();
+        if (pool == null || pool.Count <= 0)
+        {
+            pool = new List<GameManager.BoxColor>((GameManager.BoxColor[])Enum.GetValues(typeof(GameManager.BoxColor)));
+        }
+
+        if (pool.Count <= 0)
+        {
+            return;
+        }
+
+        var currentIndex = pool.IndexOf(state.OriginalColorType);
+        var nextIndex = currentIndex >= 0 ? (currentIndex + 1) % pool.Count : 0;
+        var nextColor = pool[nextIndex];
+
+        ApplyColorForBox(box, nextColor, state.IsGrayed);
+        ApplySortingForBox(box, boxIndex);
+        editingShelfConfig.RefreshBoxVisualStates();
+        UpdateShelfConfigOverlayTexts();
+    }
+
+    private static string ResolveBoxColorButtonLabel(GameManager.BoxColor color)
+    {
+        switch (color)
+        {
+            case GameManager.BoxColor.Red:
+                return "红";
+            case GameManager.BoxColor.Blue:
+                return "蓝";
+            case GameManager.BoxColor.Green:
+                return "绿";
+            case GameManager.BoxColor.Yellow:
+                return "黄";
+            case GameManager.BoxColor.Purple:
+                return "紫";
+            case GameManager.BoxColor.Orange:
+                return "橙";
+            default:
+                return color.ToString();
+        }
     }
 
     private void SetEditingShelfBoxCount(int boxCount)
@@ -1721,6 +2305,46 @@ public class ShelfSpawnManager : MonoBehaviour
         if (shelfConfigGrayCountText != null)
         {
             shelfConfigGrayCountText.text = $"隐藏(置灰)数量：{Mathf.Clamp(editingShelfGrayCount, 0, 3)}（最上层保持原色）";
+        }
+
+        if (shelfConfigColorConfigText != null)
+        {
+            shelfConfigColorConfigText.text = "箱子颜色（自下而上，点击切换）";
+        }
+
+        EnsureShelfConfigColorButtons();
+        for (var i = 0; i < shelfConfigColorButtons.Count; i++)
+        {
+            var button = shelfConfigColorButtons[i];
+            if (button == null)
+            {
+                continue;
+            }
+
+            var label = button.GetComponentInChildren<Text>(true);
+            if (label == null)
+            {
+                continue;
+            }
+
+            var hasBox = editingShelfConfig != null
+                && editingShelfConfig.StackRoot != null
+                && i < editingShelfConfig.StackRoot.childCount;
+            if (!hasBox)
+            {
+                label.text = $"{i + 1}:空";
+                continue;
+            }
+
+            var box = editingShelfConfig.StackRoot.GetChild(i);
+            var state = box != null ? box.GetComponent<BoxVisualState>() : null;
+            if (state == null)
+            {
+                label.text = $"{i + 1}:空";
+                continue;
+            }
+
+            label.text = $"{i + 1}:{ResolveBoxColorButtonLabel(state.OriginalColorType)}";
         }
     }
 
@@ -1956,8 +2580,815 @@ public class ShelfSpawnManager : MonoBehaviour
 
     public void RestartRoundByButton()
     {
+        if (!TryConsumeStaminaOnRestart())
+        {
+            return;
+        }
+
         PrepareForLevelSwitch();
         RegenerateShelves();
+    }
+
+    public void RefreshShelfColorByButton()
+    {
+        if (!isActiveAndEnabled || IsLevelDesignMode || gameWon)
+        {
+            return;
+        }
+
+        waitingRefreshShelfSelection = true;
+        if (refreshShakeRoutine != null)
+        {
+            StopCoroutine(refreshShakeRoutine);
+        }
+
+        refreshShakeRoutine = StartCoroutine(PlayRefreshShakeRoutine());
+    }
+
+    public void UndoLastMoveByButton()
+    {
+        if (!isActiveAndEnabled || IsLevelDesignMode || gameWon)
+        {
+            return;
+        }
+
+        TryUndoLastVisualMove();
+    }
+
+    public void AddEmptyShelfByButton()
+    {
+        if (!isActiveAndEnabled || gameWon)
+        {
+            return;
+        }
+
+        TryAddEmptyShelf();
+    }
+
+    private IEnumerator PlayRefreshShakeRoutine()
+    {
+        EnsureShelfSubRoots();
+
+        var shelfRootOrigin = runtimeShelfRoot != null ? runtimeShelfRoot.localPosition : Vector3.zero;
+        var boxRootOrigin = runtimeBoxRoot != null ? runtimeBoxRoot.localPosition : Vector3.zero;
+        var duration = Mathf.Max(0.01f, refreshShakeDuration);
+        var amplitude = Mathf.Max(0f, refreshShakeAmplitude);
+        var freq = Mathf.Max(0.1f, refreshShakeFrequency);
+
+        var elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            var damper = 1f - Mathf.Clamp01(elapsed / duration);
+            var offset = Mathf.Sin(elapsed * Mathf.PI * 2f * freq) * amplitude * damper;
+
+            if (runtimeShelfRoot != null)
+            {
+                runtimeShelfRoot.localPosition = shelfRootOrigin + Vector3.right * offset;
+            }
+
+            if (runtimeBoxRoot != null)
+            {
+                runtimeBoxRoot.localPosition = boxRootOrigin + Vector3.right * offset;
+            }
+
+            yield return null;
+        }
+
+        if (runtimeShelfRoot != null)
+        {
+            runtimeShelfRoot.localPosition = shelfRootOrigin;
+        }
+
+        if (runtimeBoxRoot != null)
+        {
+            runtimeBoxRoot.localPosition = boxRootOrigin;
+        }
+
+        refreshShakeRoutine = null;
+    }
+
+    private void HandleRefreshShelfSelectionInput()
+    {
+        if (!waitingRefreshShelfSelection || IsLevelDesignMode)
+        {
+            return;
+        }
+
+        if (!TryReadPrimaryPointerDown(out var screenPos, out var pointerId))
+        {
+            return;
+        }
+
+        if (EventSystem.current != null)
+        {
+            var overUI = pointerId >= 0
+                ? EventSystem.current.IsPointerOverGameObject(pointerId)
+                : EventSystem.current.IsPointerOverGameObject();
+            if (overUI)
+            {
+                return;
+            }
+        }
+
+        if (!TryResolveShelfByScreenPosition(screenPos, out var shelf) || shelf == null)
+        {
+            return;
+        }
+
+        waitingRefreshShelfSelection = false;
+        RandomizeShelfVisibleColors(shelf);
+    }
+
+    private void RandomizeShelfVisibleColors(ShelfInteractionController shelf)
+    {
+        if (shelf == null || shelf.StackRoot == null)
+        {
+            return;
+        }
+
+        var colorPool = ResolveLimitedColorPool();
+        if (colorPool == null || colorPool.Count <= 0)
+        {
+            return;
+        }
+
+        var rng = new System.Random(unchecked((int)DateTime.UtcNow.Ticks) ^ spawnSeed ^ shelf.ShelfIndex * 131);
+        var changed = false;
+
+        for (var i = 0; i < shelf.StackRoot.childCount; i++)
+        {
+            var box = shelf.StackRoot.GetChild(i);
+            if (box == null)
+            {
+                continue;
+            }
+
+            var state = box.GetComponent<BoxVisualState>();
+            if (state == null || state.IsGrayed)
+            {
+                continue;
+            }
+
+            var nextColor = state.OriginalColorType;
+            if (colorPool.Count > 1)
+            {
+                var safety = 0;
+                while (nextColor == state.OriginalColorType && safety < 16)
+                {
+                    nextColor = colorPool[rng.Next(colorPool.Count)];
+                    safety++;
+                }
+
+                if (nextColor == state.OriginalColorType)
+                {
+                    for (var c = 0; c < colorPool.Count; c++)
+                    {
+                        if (colorPool[c] != state.OriginalColorType)
+                        {
+                            nextColor = colorPool[c];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            ApplyColorForBox(box, nextColor, false);
+            ApplySortingForBox(box, i);
+            changed = true;
+        }
+
+        if (!changed)
+        {
+            return;
+        }
+
+        shelf.RefreshBoxVisualStates();
+        if (!truckEliminationRunning)
+        {
+            StartCoroutine(ProcessTruckEliminationsRoutine());
+        }
+    }
+
+    private bool TryUndoLastVisualMove()
+    {
+        while (visualMoveHistory.Count > 0)
+        {
+            var record = visualMoveHistory.Pop();
+            if (record == null || record.movedBox == null)
+            {
+                continue;
+            }
+
+            if (!TryGetRuntimeShelfByIndex(record.fromShelfIndex, out var fromShelf)
+                || !TryGetRuntimeShelfByIndex(record.toShelfIndex, out var toShelf)
+                || fromShelf == null
+                || toShelf == null
+                || fromShelf.StackRoot == null
+                || toShelf.StackRoot == null)
+            {
+                continue;
+            }
+
+            if (record.movedBox.parent != toShelf.StackRoot)
+            {
+                continue;
+            }
+
+            if (toShelf.StackRoot.childCount <= 0 || toShelf.StackRoot.GetChild(toShelf.StackRoot.childCount - 1) != record.movedBox)
+            {
+                continue;
+            }
+
+            if (fromShelf.BoxCount >= fromShelf.MaxBoxCount)
+            {
+                continue;
+            }
+
+            var targetBottom = fromShelf.transform.position;
+            if (!fromShelf.TryGetPlacementBottomPosition(out targetBottom))
+            {
+                targetBottom = fromShelf.transform.position;
+            }
+
+            record.movedBox.SetParent(fromShelf.StackRoot, true);
+            record.movedBox.rotation = fromShelf.transform.rotation;
+            if (!TryAlignBoxAndGetTop(record.movedBox, targetBottom, out _))
+            {
+                record.movedBox.position = targetBottom;
+            }
+
+            record.movedBox.SetAsLastSibling();
+            ApplySortingForShelfStack(fromShelf);
+            ApplySortingForShelfStack(toShelf);
+            fromShelf.RefreshBoxVisualStates();
+            toShelf.RefreshBoxVisualStates();
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryAddEmptyShelf()
+    {
+        var attempt = ++addShelfAttemptSequence;
+
+        if (shelfPrefab == null)
+        {
+            LogWarn("新增空货架失败：shelfPrefab 未配置。", this);
+            return false;
+        }
+
+        EnsureShelfRoot();
+        EnsureShelfSubRoots();
+
+        var cameraRef = Camera.main;
+        if (cameraRef == null)
+        {
+            LogWarn("新增空货架失败：Camera.main 为空。", this);
+            return false;
+        }
+
+        var existingBeforeAdd = new List<Vector3>(spawnedShelves.Count);
+        for (var i = 0; i < spawnedShelves.Count; i++)
+        {
+            if (spawnedShelves[i] != null)
+            {
+                existingBeforeAdd.Add(spawnedShelves[i].transform.position);
+            }
+        }
+
+        var spawnPos = ResolveAdditionalShelfSpawnPosition(cameraRef, attempt, out var placementReport, out var canPlaceWithoutOverlap);
+        var halfExtents = ResolveShelfHalfExtents();
+        var selectedOverlaps = IsOverlapping(spawnPos, existingBeforeAdd, halfExtents, Mathf.Max(0f, addShelfMinGap));
+        if (enableAddShelfPlacementReport)
+        {
+            LogInfo($"AddShelfPlacement | {FormatAddShelfPlacementReport(placementReport, spawnPos, selectedOverlaps)}");
+        }
+
+        if (!canPlaceWithoutOverlap)
+        {
+            if (enableAddShelfPlacementReport)
+            {
+                LogWarn($"AddShelfPlacementResult | attempt={attempt} | success=false | reason=no_non_overlap_slot | totalShelves={spawnedShelves.Count}", this);
+            }
+
+            return false;
+        }
+
+        var shelf = Instantiate(shelfPrefab, spawnPos, shelfPrefab.transform.rotation, runtimeShelfRoot);
+        shelf.name = $"Shelf_{spawnedShelves.Count + 1}";
+        spawnedShelves.Add(shelf);
+
+        EnsureShelfInteractionForRuntime(shelf, ResolveNextShelfIndex());
+        SpawnBoxesForShelf(shelf, null, 0, 0);
+
+        EnsureColumnConfigState(spawnedShelves.Count, true);
+        UpdateLevelIndicator();
+        UpdateDesignToolsTexts();
+        if (enableAddShelfPlacementReport)
+        {
+            LogInfo($"AddShelfPlacementResult | attempt={attempt} | success=true | shelf={shelf.name} | totalShelves={spawnedShelves.Count}", shelf);
+        }
+
+        return true;
+    }
+
+    private Vector3 ResolveAdditionalShelfSpawnPosition(Camera cameraRef, int attempt, out AddShelfPlacementReport report, out bool canPlaceWithoutOverlap)
+    {
+        canPlaceWithoutOverlap = false;
+        report = new AddShelfPlacementReport
+        {
+            attempt = attempt,
+            areaConfigured = additionalShelfPlacementArea != null,
+            existingShelfCount = spawnedShelves.Count,
+            bestMinDistance = float.MinValue,
+            selectionPath = "none"
+        };
+
+        var halfExtents = ResolveShelfHalfExtents();
+        report.halfExtents = halfExtents;
+        if (!TryResolveScreenPlacementRect(cameraRef, halfExtents, out var screenRect))
+        {
+            report.usedScreenFallback = true;
+            report.selectionPath = "screenRectUnavailable_centerFallback";
+            return ViewportToWorldOnPlane(cameraRef, new Vector2(0.5f, 0.5f));
+        }
+
+        report.screenRect = screenRect;
+
+        var placementRect = screenRect;
+        if (report.areaConfigured)
+        {
+            if (!TryResolveAdditionalAreaRect(cameraRef, out var areaRect))
+            {
+                report.areaResolveFailed = true;
+                report.selectionPath = "areaConfigured_but_unresolved";
+                return new Vector3(screenRect.center.x, screenRect.center.y, spawnPlaneZ);
+            }
+
+            report.areaResolved = true;
+            report.areaRect = areaRect;
+
+            var ixMin = Mathf.Max(screenRect.xMin, areaRect.xMin);
+            var ixMax = Mathf.Min(screenRect.xMax, areaRect.xMax);
+            var iyMin = Mathf.Max(screenRect.yMin, areaRect.yMin);
+            var iyMax = Mathf.Min(screenRect.yMax, areaRect.yMax);
+            var intersection = Rect.MinMaxRect(ixMin, iyMin, ixMax, iyMax);
+
+            if (intersection.width > 0.01f && intersection.height > 0.01f)
+            {
+                placementRect = intersection;
+                report.areaIntersectionApplied = true;
+            }
+            else
+            {
+                report.areaIntersectionInvalid = true;
+                report.selectionPath = "areaIntersectionInvalid";
+                return new Vector3(screenRect.center.x, screenRect.center.y, spawnPlaneZ);
+            }
+        }
+
+        report.placementRect = placementRect;
+        report.requiredSpacingX = halfExtents.x * 2f + Mathf.Max(0f, addShelfMinGap);
+        report.requiredSpacingY = halfExtents.y * 2f + Mathf.Max(0f, addShelfMinGap);
+        if (report.requiredSpacingX > 0.01f && report.requiredSpacingY > 0.01f)
+        {
+            var capX = Mathf.FloorToInt(Mathf.Max(0f, placementRect.width) / report.requiredSpacingX);
+            var capY = Mathf.FloorToInt(Mathf.Max(0f, placementRect.height) / report.requiredSpacingY);
+            report.estimatedGridCapacity = Mathf.Max(0, capX * capY);
+        }
+
+        var existing = new List<Vector3>(spawnedShelves.Count);
+        for (var i = 0; i < spawnedShelves.Count; i++)
+        {
+            if (spawnedShelves[i] != null)
+            {
+                existing.Add(spawnedShelves[i].transform.position);
+            }
+        }
+
+        var candidates = new List<Vector3>();
+        var autoCandidates = GenerateShelfPositions(cameraRef, Mathf.Max(1, spawnedShelves.Count + 6));
+        for (var i = 0; i < autoCandidates.Count; i++)
+        {
+            candidates.Add(autoCandidates[i]);
+        }
+
+        var stepX = Mathf.Max(halfExtents.x * 2f + Mathf.Max(0f, addShelfMinGap), 0.2f);
+        var stepY = Mathf.Max(halfExtents.y * 2f + Mathf.Max(0f, addShelfMinGap), 0.2f);
+        for (var y = placementRect.yMax; y >= placementRect.yMin; y -= stepY)
+        {
+            for (var x = placementRect.xMin; x <= placementRect.xMax; x += stepX)
+            {
+                candidates.Add(new Vector3(x, y, spawnPlaneZ));
+            }
+        }
+
+        report.candidateCount = candidates.Count;
+
+        if (existing.Count == 0)
+        {
+            var candidate = ClampToRect(candidates[0], placementRect);
+            report.acceptedCount++;
+            canPlaceWithoutOverlap = true;
+            report.selectionPath = "firstValidCandidate_noExistingShelves";
+            return candidate;
+        }
+
+        Vector3 best = new Vector3(placementRect.center.x, placementRect.center.y, spawnPlaneZ);
+        var bestMinDistance = float.MinValue;
+        for (var i = 0; i < candidates.Count; i++)
+        {
+            var candidate = ClampToRect(candidates[i], placementRect);
+            if (IsOverlapping(candidate, existing, halfExtents, Mathf.Max(0f, addShelfMinGap)))
+            {
+                report.rejectedByShelfOverlap++;
+                continue;
+            }
+
+            var minDistance = float.MaxValue;
+            for (var j = 0; j < existing.Count; j++)
+            {
+                var distance = Vector3.Distance(candidate, existing[j]);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                }
+            }
+
+            report.acceptedCount++;
+
+            if (minDistance > bestMinDistance)
+            {
+                bestMinDistance = minDistance;
+                best = candidate;
+                report.bestUpdatedCount++;
+            }
+        }
+
+        report.bestMinDistance = bestMinDistance;
+
+        if (bestMinDistance > 0.01f)
+        {
+            canPlaceWithoutOverlap = true;
+            report.selectionPath = "bestMaxMinDistance";
+            return best;
+        }
+
+        report.selectionPath = "no_non_overlap_slot_in_range";
+        return new Vector3(placementRect.center.x, placementRect.center.y, spawnPlaneZ);
+    }
+
+    private string FormatAddShelfPlacementReport(AddShelfPlacementReport report, Vector3 selectedPos, bool selectedOverlaps)
+    {
+        if (report == null)
+        {
+            return $"attempt={addShelfAttemptSequence} | report=null";
+        }
+
+        var areaTarget = report.areaConfigured
+            ? (additionalShelfPlacementArea != null ? additionalShelfPlacementArea.name : "NULL")
+            : "none";
+
+        return
+            $"attempt={report.attempt}"
+            + $" | areaTarget={areaTarget}"
+            + $" | areaResolved={report.areaResolved}"
+            + $" | areaIntersectionApplied={report.areaIntersectionApplied}"
+            + $" | areaIntersectionInvalid={report.areaIntersectionInvalid}"
+            + $" | areaResolveFailed={report.areaResolveFailed}"
+            + $" | usedScreenFallback={report.usedScreenFallback}"
+            + $" | existing={report.existingShelfCount}"
+            + $" | candidates={report.candidateCount}"
+            + $" | accepted={report.acceptedCount}"
+            + $" | rejectOverlap={report.rejectedByShelfOverlap}"
+            + $" | rejectButton={report.rejectedByButtons}"
+            + $" | bestUpdates={report.bestUpdatedCount}"
+            + $" | bestMinDist={report.bestMinDistance:F3}"
+            + $" | requiredSpacing=({report.requiredSpacingX:F2},{report.requiredSpacingY:F2})"
+            + $" | estimatedCapacity={report.estimatedGridCapacity}"
+            + $" | fallbackUsed={report.fallbackUsed}"
+            + $" | fallbackOverlaps={report.fallbackOverlaps}"
+            + $" | path={report.selectionPath}"
+            + $" | halfExtents=({report.halfExtents.x:F2},{report.halfExtents.y:F2})"
+            + $" | screenRect={FormatRectForLog(report.screenRect)}"
+            + $" | areaRect={FormatRectForLog(report.areaRect)}"
+            + $" | placementRect={FormatRectForLog(report.placementRect)}"
+            + $" | selected=({selectedPos.x:F2},{selectedPos.y:F2},{selectedPos.z:F2})"
+            + $" | selectedOverlaps={selectedOverlaps}";
+    }
+
+    private static string FormatRectForLog(Rect rect)
+    {
+        return $"[{rect.xMin:F2},{rect.yMin:F2}]-[{rect.xMax:F2},{rect.yMax:F2}]({rect.width:F2}x{rect.height:F2})";
+    }
+
+    private bool TryResolveScreenPlacementRect(Camera cameraRef, Vector2 halfExtents, out Rect rect)
+    {
+        rect = default;
+        if (cameraRef == null)
+        {
+            return false;
+        }
+
+        var leftWorld = ViewportToWorldOnPlane(cameraRef, new Vector2(0f, 0.5f)).x;
+        var rightWorld = ViewportToWorldOnPlane(cameraRef, new Vector2(1f, 0.5f)).x;
+        var bottomWorld = ViewportToWorldOnPlane(cameraRef, new Vector2(0.5f, 0f)).y;
+        var topWorld = ViewportToWorldOnPlane(cameraRef, new Vector2(0.5f, 1f)).y;
+
+        var xMin = Mathf.Min(leftWorld, rightWorld) + halfExtents.x;
+        var xMax = Mathf.Max(leftWorld, rightWorld) - halfExtents.x;
+        var yMin = Mathf.Min(bottomWorld, topWorld) + halfExtents.y;
+        var yMax = Mathf.Max(bottomWorld, topWorld) - halfExtents.y;
+
+        rect = Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+        return rect.width > 0.01f && rect.height > 0.01f;
+    }
+
+    private bool TryResolveAdditionalShelfPlacementRect(Camera cameraRef, Vector2 halfExtents, out Rect rect)
+    {
+        rect = default;
+        if (!TryResolveScreenPlacementRect(cameraRef, halfExtents, out var screenRect))
+        {
+            return false;
+        }
+        if (screenRect.width <= 0.01f || screenRect.height <= 0.01f)
+        {
+            return false;
+        }
+
+        if (!TryResolveAdditionalAreaRect(cameraRef, out var areaRect))
+        {
+            rect = screenRect;
+            return true;
+        }
+
+        var ixMin = Mathf.Max(screenRect.xMin, areaRect.xMin);
+        var ixMax = Mathf.Min(screenRect.xMax, areaRect.xMax);
+        var iyMin = Mathf.Max(screenRect.yMin, areaRect.yMin);
+        var iyMax = Mathf.Min(screenRect.yMax, areaRect.yMax);
+        var intersection = Rect.MinMaxRect(ixMin, iyMin, ixMax, iyMax);
+
+        if (intersection.width <= 0.01f || intersection.height <= 0.01f)
+        {
+            rect = screenRect;
+            return true;
+        }
+
+        rect = intersection;
+        return true;
+    }
+
+    private bool TryResolveAdditionalAreaRect(Camera cameraRef, out Rect rect)
+    {
+        rect = default;
+        if (additionalShelfPlacementArea == null)
+        {
+            return false;
+        }
+
+        var uiRect = additionalShelfPlacementArea as RectTransform;
+        var canvas = uiRect != null ? uiRect.GetComponentInParent<Canvas>() : null;
+        if (uiRect != null && cameraRef != null && canvas != null)
+        {
+            var corners = new Vector3[4];
+            uiRect.GetWorldCorners(corners);
+
+            var canvasCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+
+            var minX = float.MaxValue;
+            var minY = float.MaxValue;
+            var maxX = float.MinValue;
+            var maxY = float.MinValue;
+
+            for (var i = 0; i < 4; i++)
+            {
+                var screen = RectTransformUtility.WorldToScreenPoint(canvasCamera, corners[i]);
+                var world = ScreenToWorldOnSpawnPlane(cameraRef, screen);
+                minX = Mathf.Min(minX, world.x);
+                minY = Mathf.Min(minY, world.y);
+                maxX = Mathf.Max(maxX, world.x);
+                maxY = Mathf.Max(maxY, world.y);
+            }
+
+            rect = Rect.MinMaxRect(minX, minY, maxX, maxY);
+            return rect.width > 0.01f && rect.height > 0.01f;
+        }
+
+        if (uiRect != null && canvas == null)
+        {
+            var worldCenter = uiRect.position;
+            var worldSize = new Vector2(
+                Mathf.Abs(uiRect.rect.width * uiRect.lossyScale.x),
+                Mathf.Abs(uiRect.rect.height * uiRect.lossyScale.y));
+
+            if (worldSize.x <= 0.01f || worldSize.y <= 0.01f)
+            {
+                return false;
+            }
+
+            var worldHalfX = worldSize.x * 0.5f;
+            var worldHalfY = worldSize.y * 0.5f;
+            rect = Rect.MinMaxRect(worldCenter.x - worldHalfX, worldCenter.y - worldHalfY, worldCenter.x + worldHalfX, worldCenter.y + worldHalfY);
+            return rect.width > 0.01f && rect.height > 0.01f;
+        }
+
+        var box2D = additionalShelfPlacementArea.GetComponent<BoxCollider2D>();
+        if (box2D != null)
+        {
+            var b = box2D.bounds;
+            rect = Rect.MinMaxRect(b.min.x, b.min.y, b.max.x, b.max.y);
+            return rect.width > 0.01f && rect.height > 0.01f;
+        }
+
+        var box3D = additionalShelfPlacementArea.GetComponent<BoxCollider>();
+        if (box3D != null)
+        {
+            var b = box3D.bounds;
+            rect = Rect.MinMaxRect(b.min.x, b.min.y, b.max.x, b.max.y);
+            return rect.width > 0.01f && rect.height > 0.01f;
+        }
+
+        var renderer = additionalShelfPlacementArea.GetComponentInChildren<Renderer>(true);
+        if (renderer != null)
+        {
+            var b = renderer.bounds;
+            rect = Rect.MinMaxRect(b.min.x, b.min.y, b.max.x, b.max.y);
+            return rect.width > 0.01f && rect.height > 0.01f;
+        }
+
+        return false;
+    }
+
+    private Vector3 ScreenToWorldOnSpawnPlane(Camera cameraRef, Vector2 screenPoint)
+    {
+        if (cameraRef == null)
+        {
+            return Vector3.zero;
+        }
+
+        var depth = Mathf.Abs(spawnPlaneZ - cameraRef.transform.position.z);
+        if (depth < 0.01f)
+        {
+            depth = 10f;
+        }
+
+        var world = cameraRef.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, depth));
+        world.z = spawnPlaneZ;
+        return world;
+    }
+
+    private static Vector3 ClampToRect(Vector3 pos, Rect rect)
+    {
+        return new Vector3(
+            Mathf.Clamp(pos.x, rect.xMin, rect.xMax),
+            Mathf.Clamp(pos.y, rect.yMin, rect.yMax),
+            pos.z);
+    }
+
+    private bool IsShelfCandidateOverlappingButtons(Camera cameraRef, Vector3 candidate, Vector2 halfExtents, bool avoidButtons)
+    {
+        if (!avoidButtons)
+        {
+            return false;
+        }
+
+        var buttonRects = CollectActiveButtonScreenRects();
+        if (buttonRects.Count == 0)
+        {
+            return false;
+        }
+
+        var depth = Mathf.Abs(spawnPlaneZ - cameraRef.transform.position.z);
+        if (depth < 0.01f)
+        {
+            depth = 10f;
+        }
+
+        var p1 = cameraRef.WorldToScreenPoint(new Vector3(candidate.x - halfExtents.x, candidate.y - halfExtents.y, cameraRef.transform.position.z + depth));
+        var p2 = cameraRef.WorldToScreenPoint(new Vector3(candidate.x + halfExtents.x, candidate.y + halfExtents.y, cameraRef.transform.position.z + depth));
+        var shelfRect = Rect.MinMaxRect(
+            Mathf.Min(p1.x, p2.x),
+            Mathf.Min(p1.y, p2.y),
+            Mathf.Max(p1.x, p2.x),
+            Mathf.Max(p1.y, p2.y));
+
+        for (var i = 0; i < buttonRects.Count; i++)
+        {
+            if (shelfRect.Overlaps(buttonRects[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private List<Rect> CollectActiveButtonScreenRects()
+    {
+        var result = new List<Rect>();
+        var buttons = FindObjectsOfType<Button>(true);
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            var button = buttons[i];
+            if (button == null || !button.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            var rectTransform = button.transform as RectTransform;
+            if (rectTransform == null)
+            {
+                continue;
+            }
+
+            var corners = new Vector3[4];
+            rectTransform.GetWorldCorners(corners);
+            var minX = float.MaxValue;
+            var minY = float.MaxValue;
+            var maxX = float.MinValue;
+            var maxY = float.MinValue;
+            for (var c = 0; c < 4; c++)
+            {
+                var s = RectTransformUtility.WorldToScreenPoint(null, corners[c]);
+                minX = Mathf.Min(minX, s.x);
+                minY = Mathf.Min(minY, s.y);
+                maxX = Mathf.Max(maxX, s.x);
+                maxY = Mathf.Max(maxY, s.y);
+            }
+
+            if (maxX - minX <= 1f || maxY - minY <= 1f)
+            {
+                continue;
+            }
+
+            result.Add(Rect.MinMaxRect(minX, minY, maxX, maxY));
+        }
+
+        return result;
+    }
+
+    private int ResolveNextShelfIndex()
+    {
+        var maxIndex = -1;
+        for (var i = 0; i < spawnedShelves.Count; i++)
+        {
+            var shelfGo = spawnedShelves[i];
+            if (shelfGo == null)
+            {
+                continue;
+            }
+
+            var interaction = shelfGo.GetComponent<ShelfInteractionController>();
+            if (interaction != null)
+            {
+                maxIndex = Mathf.Max(maxIndex, interaction.ShelfIndex);
+            }
+        }
+
+        return maxIndex + 1;
+    }
+
+    private bool TryGetRuntimeShelfByIndex(int shelfIndex, out ShelfInteractionController shelf)
+    {
+        shelf = null;
+        for (var i = 0; i < spawnedShelves.Count; i++)
+        {
+            var shelfGo = spawnedShelves[i];
+            if (shelfGo == null)
+            {
+                continue;
+            }
+
+            var interaction = shelfGo.GetComponent<ShelfInteractionController>();
+            if (interaction != null && interaction.ShelfIndex == shelfIndex)
+            {
+                shelf = interaction;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ApplySortingForShelfStack(ShelfInteractionController shelf)
+    {
+        if (shelf == null || shelf.StackRoot == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < shelf.StackRoot.childCount; i++)
+        {
+            var box = shelf.StackRoot.GetChild(i);
+            if (box != null)
+            {
+                ApplySortingForBox(box, i);
+            }
+        }
     }
 
     private void NormalizeConfiguredCounts()
@@ -2526,6 +3957,11 @@ public class ShelfSpawnManager : MonoBehaviour
                     continue;
                 }
 
+                if (state.IsGrayed)
+                {
+                    continue;
+                }
+
                 if (countsByColor.ContainsKey(state.OriginalColorType))
                 {
                     countsByColor[state.OriginalColorType]++;
@@ -2593,6 +4029,11 @@ public class ShelfSpawnManager : MonoBehaviour
 
                 var state = box.GetComponent<BoxVisualState>();
                 if (state == null)
+                {
+                    continue;
+                }
+
+                if (state.IsGrayed)
                 {
                     continue;
                 }
@@ -2740,15 +4181,140 @@ public class ShelfSpawnManager : MonoBehaviour
     private IEnumerator ProcessTruckEliminationsRoutine()
     {
         truckEliminationRunning = true;
+        var eliminatedCount = 0;
 
         while (!gameWon && TryFindTruckEliminationCandidate(out var shelf, out var truck, out var orderedBoxes, out var uniformColor))
         {
             truck.busy = true;
+            eliminatedCount++;
             LogInfo($"Truck elimination start | shelf={shelf.name} | color={uniformColor} | truck={truck.truck.name}");
             yield return StartCoroutine(PlayTruckEliminationRoutine(shelf, truck, orderedBoxes));
         }
 
+        if (!gameWon)
+        {
+            LogEliminationSnapshot($"scan-end eliminated={eliminatedCount}");
+        }
+
         truckEliminationRunning = false;
+    }
+
+    private void LogEliminationSnapshot(string reason)
+    {
+        if (!enableEliminationSnapshotLog || (!enableDebugLog && !enableDebugFileLog))
+        {
+            return;
+        }
+
+        if (Time.unscaledTime < nextEliminationSnapshotLogTime)
+        {
+            return;
+        }
+
+        nextEliminationSnapshotLogTime = Time.unscaledTime + Mathf.Max(0f, eliminationSnapshotLogCooldown);
+
+        var truckStates = new List<string>();
+        for (var i = 0; i < activeTrucks.Count; i++)
+        {
+            var truck = activeTrucks[i];
+            if (truck == null)
+            {
+                truckStates.Add($"#{i}:null");
+                continue;
+            }
+
+            var truckName = truck.truck != null ? truck.truck.name : "nullGo";
+            truckStates.Add($"#{i}:{truckName}|{truck.color}|busy={truck.busy}");
+        }
+
+        LogInfo($"EliminationSnapshot start | reason={reason} | shelves={spawnedShelves.Count} | trucks=[{string.Join(" ; ", truckStates)}]");
+
+        for (var i = 0; i < spawnedShelves.Count; i++)
+        {
+            var shelfGo = spawnedShelves[i];
+            if (shelfGo == null)
+            {
+                LogInfo($"EliminationSnapshot shelf#{i} | state=null");
+                continue;
+            }
+
+            var shelf = shelfGo.GetComponent<ShelfInteractionController>();
+            if (shelf == null || shelf.StackRoot == null)
+            {
+                LogInfo($"EliminationSnapshot shelf#{i}:{shelfGo.name} | state=no-shelf-or-stack");
+                continue;
+            }
+
+            var stackRoot = shelf.StackRoot;
+            var childCount = stackRoot.childCount;
+            if (childCount != 4)
+            {
+                LogInfo($"EliminationSnapshot shelf#{i}:{shelfGo.name} | boxes={childCount} | state=not-full");
+                continue;
+            }
+
+            var colors = new List<string>();
+            var hasGray = false;
+            var hasMissingState = false;
+            GameManager.BoxColor? firstColor = null;
+            var uniform = true;
+
+            for (var b = 0; b < childCount; b++)
+            {
+                var box = stackRoot.GetChild(b);
+                var state = box != null ? box.GetComponent<BoxVisualState>() : null;
+                if (state == null)
+                {
+                    hasMissingState = true;
+                    colors.Add($"{b}:missing-state");
+                    uniform = false;
+                    continue;
+                }
+
+                colors.Add($"{b}:{state.OriginalColorType}|gray={state.IsGrayed}");
+                if (state.IsGrayed)
+                {
+                    hasGray = true;
+                    uniform = false;
+                }
+
+                if (!firstColor.HasValue)
+                {
+                    firstColor = state.OriginalColorType;
+                }
+                else if (state.OriginalColorType != firstColor.Value)
+                {
+                    uniform = false;
+                }
+            }
+
+            if (hasMissingState)
+            {
+                LogInfo($"EliminationSnapshot shelf#{i}:{shelfGo.name} | boxes=[{string.Join(", ", colors)}] | state=missing-box-state");
+                continue;
+            }
+
+            if (hasGray)
+            {
+                LogInfo($"EliminationSnapshot shelf#{i}:{shelfGo.name} | boxes=[{string.Join(", ", colors)}] | state=has-gray");
+                continue;
+            }
+
+            if (!uniform || !firstColor.HasValue)
+            {
+                LogInfo($"EliminationSnapshot shelf#{i}:{shelfGo.name} | boxes=[{string.Join(", ", colors)}] | state=non-uniform");
+                continue;
+            }
+
+            var matchedTruck = activeTrucks.FirstOrDefault(t => t != null && !t.busy && t.truck != null && t.color == firstColor.Value);
+            if (matchedTruck == null)
+            {
+                LogInfo($"EliminationSnapshot shelf#{i}:{shelfGo.name} | color={firstColor.Value} | boxes=[{string.Join(", ", colors)}] | state=no-idle-truck");
+                continue;
+            }
+
+            LogInfo($"EliminationSnapshot shelf#{i}:{shelfGo.name} | color={firstColor.Value} | boxes=[{string.Join(", ", colors)}] | state=ready | truck={matchedTruck.truck.name}");
+        }
     }
 
     private bool TryFindTruckEliminationCandidate(
@@ -2822,6 +4388,11 @@ public class ShelfSpawnManager : MonoBehaviour
 
             var state = box.GetComponent<BoxVisualState>();
             if (state == null)
+            {
+                return false;
+            }
+
+            if (state.IsGrayed)
             {
                 return false;
             }
@@ -3339,19 +4910,697 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         var rect = text.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0f, 1f);
-        rect.anchorMax = new Vector2(0f, 1f);
-        rect.pivot = new Vector2(0f, 1f);
+        if (centerLevelIndicator)
+        {
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+        }
+        else
+        {
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+        }
+
         rect.sizeDelta = levelIndicatorSize;
         rect.anchoredPosition = levelIndicatorPosition;
 
         text.font = text.font ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
-        text.fontSize = 30;
-        text.alignment = TextAnchor.MiddleLeft;
+        text.fontSize = Mathf.Max(10, levelIndicatorFontSize);
+        text.alignment = centerLevelIndicator ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft;
         text.color = Color.white;
         text.raycastTarget = false;
         levelIndicatorTextRef = text;
         return levelIndicatorTextRef;
+    }
+
+    private void EnsureEconomyHud()
+    {
+        if (!showEconomyHud)
+        {
+            if (coinHudTextRef != null)
+            {
+                coinHudTextRef.gameObject.SetActive(false);
+            }
+
+            if (staminaHudTextRef != null)
+            {
+                staminaHudTextRef.gameObject.SetActive(false);
+            }
+
+            return;
+        }
+
+        var canvas = EnsureUICanvas();
+        if (canvas == null)
+        {
+            return;
+        }
+
+        coinHudTextRef = EnsureEconomyHudText(coinHudTextRef, canvas.transform, "CoinHudText", coinHudPosition);
+        staminaHudTextRef = EnsureEconomyHudText(staminaHudTextRef, canvas.transform, "StaminaHudText", staminaHudPosition, staminaHudItemSize);
+        UpdateEconomyHud();
+        BringOverlayForegroundElements();
+    }
+
+    private void EnsureWinResultPanel()
+    {
+        var canvas = EnsureUICanvas();
+        if (canvas == null)
+        {
+            return;
+        }
+
+        if (winResultPanelRoot == null)
+        {
+            var existing = canvas.transform.Find("WinResultPanel") as RectTransform;
+            if (existing != null)
+            {
+                winResultPanelRoot = existing;
+            }
+            else
+            {
+                var panelObj = new GameObject("WinResultPanel", typeof(RectTransform), typeof(Image));
+                winResultPanelRoot = panelObj.GetComponent<RectTransform>();
+                panelObj.transform.SetParent(canvas.transform, false);
+            }
+        }
+
+        if (winResultPanelRoot == null)
+        {
+            return;
+        }
+
+        winResultPanelRoot.anchorMin = new Vector2(0.5f, 0.5f);
+        winResultPanelRoot.anchorMax = new Vector2(0.5f, 0.5f);
+        winResultPanelRoot.pivot = new Vector2(0.5f, 0.5f);
+        winResultPanelRoot.sizeDelta = winResultPanelSize;
+        winResultPanelRoot.anchoredPosition = winResultPanelPosition;
+
+        var panelBg = winResultPanelRoot.GetComponent<Image>();
+        if (panelBg == null)
+        {
+            panelBg = winResultPanelRoot.gameObject.AddComponent<Image>();
+        }
+
+        panelBg.color = winResultPanelBackgroundColor;
+        panelBg.raycastTarget = true;
+
+        winResultTitleTextRef = EnsureWinPanelText(
+            winResultTitleTextRef,
+            winResultPanelRoot,
+            "TitleText",
+            winResultTitleSize,
+            winResultTitlePosition,
+            winResultTitleFontSize,
+            FontStyle.Bold);
+
+        winResultRewardTextRef = EnsureWinPanelText(
+            winResultRewardTextRef,
+            winResultPanelRoot,
+            "RewardText",
+            winResultRewardSize,
+            winResultRewardPosition,
+            winResultRewardFontSize,
+            FontStyle.Normal);
+
+        winResultNextLevelButtonRef = EnsureWinPanelButton(
+            winResultNextLevelButtonRef,
+            winResultPanelRoot,
+            "NextLevelButton",
+            winResultNextLevelButtonText,
+            winResultNextLevelButtonSize,
+            winResultNextLevelButtonPosition,
+            GoToNextLevelFromWinPanelByButton);
+
+        HideWinResultPanel();
+        BringOverlayForegroundElements();
+    }
+
+    private Text EnsureWinPanelText(
+        Text target,
+        RectTransform panelRoot,
+        string childName,
+        Vector2 size,
+        Vector2 anchoredPosition,
+        int fontSize,
+        FontStyle fontStyle)
+    {
+        var textRef = target;
+        if (textRef == null)
+        {
+            var existing = panelRoot.Find(childName);
+            if (existing != null)
+            {
+                textRef = existing.GetComponent<Text>() ?? existing.gameObject.AddComponent<Text>();
+            }
+        }
+
+        if (textRef == null)
+        {
+            var textObj = new GameObject(childName, typeof(RectTransform), typeof(Text));
+            textObj.transform.SetParent(panelRoot, false);
+            textRef = textObj.GetComponent<Text>();
+        }
+
+        var rect = textRef.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.sizeDelta = size;
+        rect.anchoredPosition = anchoredPosition;
+
+        textRef.font = textRef.font ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
+        textRef.fontSize = Mathf.Max(12, fontSize);
+        textRef.fontStyle = fontStyle;
+        textRef.alignment = TextAnchor.MiddleCenter;
+        textRef.color = Color.white;
+        textRef.raycastTarget = false;
+        return textRef;
+    }
+
+    private Button EnsureWinPanelButton(
+        Button target,
+        RectTransform panelRoot,
+        string childName,
+        string buttonLabel,
+        Vector2 size,
+        Vector2 anchoredPosition,
+        UnityEngine.Events.UnityAction onClick)
+    {
+        var button = target;
+        if (button == null)
+        {
+            var existing = panelRoot.Find(childName);
+            if (existing != null)
+            {
+                button = existing.GetComponent<Button>() ?? existing.gameObject.AddComponent<Button>();
+                if (existing.GetComponent<Image>() == null)
+                {
+                    existing.gameObject.AddComponent<Image>();
+                }
+            }
+        }
+
+        if (button == null)
+        {
+            var buttonObj = new GameObject(childName, typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObj.transform.SetParent(panelRoot, false);
+            button = buttonObj.GetComponent<Button>();
+
+            var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            textObj.transform.SetParent(buttonObj.transform, false);
+            var textRect = textObj.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+        }
+
+        var rect = button.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.sizeDelta = size;
+        rect.anchoredPosition = anchoredPosition;
+
+        var image = button.GetComponent<Image>();
+        if (image != null)
+        {
+            image.color = new Color(0.2f, 0.3f, 0.46f, 0.98f);
+        }
+
+        var colors = button.colors;
+        colors.normalColor = image != null ? image.color : colors.normalColor;
+        colors.highlightedColor = new Color(0.28f, 0.4f, 0.58f, 1f);
+        colors.pressedColor = new Color(0.14f, 0.22f, 0.34f, 1f);
+        colors.selectedColor = colors.highlightedColor;
+        button.colors = colors;
+
+        var label = button.GetComponentInChildren<Text>(true);
+        if (label != null)
+        {
+            label.font = label.font ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
+            label.fontSize = 30;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.text = buttonLabel;
+            label.raycastTarget = false;
+        }
+
+        button.onClick.RemoveListener(onClick);
+        button.onClick.AddListener(onClick);
+        return button;
+    }
+
+    private void ShowWinResultPanel(int reward)
+    {
+        EnsureWinResultPanel();
+        if (winResultPanelRoot == null)
+        {
+            return;
+        }
+
+        if (winResultTitleTextRef != null)
+        {
+            winResultTitleTextRef.text = catWinMessage;
+        }
+
+        if (winResultRewardTextRef != null)
+        {
+            winResultRewardTextRef.text = $"{winRewardTextPrefix} {Mathf.Max(0, reward)}";
+        }
+
+        if (winResultNextLevelButtonRef != null)
+        {
+            var label = winResultNextLevelButtonRef.GetComponentInChildren<Text>(true);
+            if (label != null)
+            {
+                label.text = winResultNextLevelButtonText;
+            }
+        }
+
+        winResultPanelRoot.gameObject.SetActive(true);
+        BringOverlayForegroundElements();
+    }
+
+    private void HideWinResultPanel()
+    {
+        if (winResultPanelRoot != null)
+        {
+            winResultPanelRoot.gameObject.SetActive(false);
+        }
+    }
+
+    private void GoToNextLevelFromWinPanelByButton()
+    {
+        Time.timeScale = 1f;
+        HideWinResultPanel();
+        HideDimOverlay();
+        GoToNextLevelByButton();
+    }
+
+    private Text EnsureEconomyHudText(Text target, Transform parent, string objectName, Vector2 anchoredPosition)
+    {
+        return EnsureEconomyHudText(target, parent, objectName, anchoredPosition, economyHudItemSize);
+    }
+
+    private Text EnsureEconomyHudText(Text target, Transform parent, string objectName, Vector2 anchoredPosition, Vector2 itemSize)
+    {
+        var textRef = target;
+        if (textRef == null)
+        {
+            var existing = parent.Find(objectName);
+            if (existing != null)
+            {
+                textRef = existing.GetComponent<Text>() ?? existing.gameObject.AddComponent<Text>();
+            }
+        }
+
+        if (textRef == null)
+        {
+            var go = new GameObject(objectName, typeof(RectTransform), typeof(Text));
+            go.transform.SetParent(parent, false);
+            textRef = go.GetComponent<Text>();
+        }
+
+        var rect = textRef.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.sizeDelta = itemSize;
+        rect.anchoredPosition = anchoredPosition;
+
+        textRef.font = textRef.font ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
+        textRef.fontSize = Mathf.Max(12, economyHudFontSize);
+        textRef.alignment = TextAnchor.MiddleLeft;
+        textRef.color = Color.white;
+        textRef.raycastTarget = false;
+        textRef.gameObject.SetActive(true);
+        return textRef;
+    }
+
+    private void InitializeEconomyState()
+    {
+        if (persistEconomyData)
+        {
+            if (!UnityEngine.PlayerPrefs.HasKey(EconomyCoinPrefKey))
+            {
+                UnityEngine.PlayerPrefs.SetInt(EconomyCoinPrefKey, Mathf.Max(0, initialCoinCount));
+            }
+
+            if (!UnityEngine.PlayerPrefs.HasKey(EconomyStaminaPrefKey))
+            {
+                UnityEngine.PlayerPrefs.SetInt(EconomyStaminaPrefKey, Mathf.Max(0, initialStaminaCount));
+            }
+
+            currentCoinCount = Mathf.Max(0, UnityEngine.PlayerPrefs.GetInt(EconomyCoinPrefKey, Mathf.Max(0, initialCoinCount)));
+            currentStaminaCount = Mathf.Max(0, UnityEngine.PlayerPrefs.GetInt(EconomyStaminaPrefKey, Mathf.Max(0, initialStaminaCount)));
+            var savedTicks = UnityEngine.PlayerPrefs.GetString(EconomyStaminaRecoveryStartTicksPrefKey, string.Empty);
+            if (!string.IsNullOrWhiteSpace(savedTicks) && long.TryParse(savedTicks, out var parsedTicks) && parsedTicks > 0)
+            {
+                staminaRecoveryStartUtcTicks = parsedTicks;
+            }
+            else
+            {
+                staminaRecoveryStartUtcTicks = -1L;
+            }
+
+            ProcessStaminaRecoveryByElapsedTime(true);
+            UnityEngine.PlayerPrefs.Save();
+        }
+        else
+        {
+            currentCoinCount = Mathf.Max(0, initialCoinCount);
+            currentStaminaCount = Mathf.Max(0, initialStaminaCount);
+            staminaRecoveryStartUtcTicks = currentStaminaCount < Mathf.Max(1, staminaRecoveryMax) ? DateTime.UtcNow.Ticks : -1L;
+        }
+
+        nextStaminaRecoveryUiRefreshTime = Time.unscaledTime + 1f;
+    }
+
+    private void SaveEconomyState()
+    {
+        if (!persistEconomyData)
+        {
+            return;
+        }
+
+        UnityEngine.PlayerPrefs.SetInt(EconomyCoinPrefKey, Mathf.Max(0, currentCoinCount));
+        UnityEngine.PlayerPrefs.SetInt(EconomyStaminaPrefKey, Mathf.Max(0, currentStaminaCount));
+        if (staminaRecoveryStartUtcTicks > 0 && currentStaminaCount < Mathf.Max(1, staminaRecoveryMax))
+        {
+            UnityEngine.PlayerPrefs.SetString(EconomyStaminaRecoveryStartTicksPrefKey, staminaRecoveryStartUtcTicks.ToString());
+        }
+        else
+        {
+            UnityEngine.PlayerPrefs.DeleteKey(EconomyStaminaRecoveryStartTicksPrefKey);
+        }
+
+        UnityEngine.PlayerPrefs.Save();
+    }
+
+    private void UpdateEconomyHud()
+    {
+        if (!showEconomyHud)
+        {
+            return;
+        }
+
+        if (coinHudTextRef != null)
+        {
+            coinHudTextRef.text = $"{coinIconText} {Mathf.Max(0, currentCoinCount)}";
+        }
+
+        if (staminaHudTextRef != null)
+        {
+            var staminaValue = Mathf.Max(0, currentStaminaCount);
+            var suffix = string.Empty;
+            if (staminaValue < Mathf.Max(1, staminaRecoveryMax) && TryGetStaminaRecoveryCountdownText(out var countdown))
+            {
+                suffix = $"  ({countdown})";
+            }
+
+            staminaHudTextRef.text = $"{staminaIconText} {staminaValue}{suffix}";
+        }
+
+        UpdateRestartConfirmButtonVisualState();
+    }
+
+    private bool TryConsumeStaminaOnRestart()
+    {
+        if (IsLevelDesignMode)
+        {
+            return true;
+        }
+
+        var cost = Mathf.Max(0, staminaCostOnRestart);
+        if (cost <= 0)
+        {
+            return true;
+        }
+
+        if (currentStaminaCount < cost)
+        {
+            LogWarn($"体力不足，无法重新开始当前局 | stamina={currentStaminaCount} | cost={cost}", this);
+            ShowStaminaInsufficientBubble();
+            UpdateRestartConfirmButtonVisualState();
+            return false;
+        }
+
+        currentStaminaCount = Mathf.Max(0, currentStaminaCount - cost);
+        if (currentStaminaCount < Mathf.Max(1, staminaRecoveryMax) && staminaRecoveryStartUtcTicks <= 0)
+        {
+            staminaRecoveryStartUtcTicks = DateTime.UtcNow.Ticks;
+        }
+
+        SaveEconomyState();
+        UpdateEconomyHud();
+        ApplyBoxInteractionMode();
+        LogInfo($"重新开始消耗体力成功 | cost={cost} | remain={currentStaminaCount}");
+        return true;
+    }
+
+    private void HandleStaminaRecoveryTick()
+    {
+        if (IsLevelDesignMode)
+        {
+            return;
+        }
+
+        if (Time.unscaledTime < nextStaminaRecoveryUiRefreshTime)
+        {
+            return;
+        }
+
+        nextStaminaRecoveryUiRefreshTime = Time.unscaledTime + 1f;
+        var changed = ProcessStaminaRecoveryByElapsedTime(true);
+        if (changed || (showEconomyHud && staminaHudTextRef != null))
+        {
+            UpdateEconomyHud();
+        }
+    }
+
+    private bool ProcessStaminaRecoveryByElapsedTime(bool saveWhenChanged)
+    {
+        var maxStamina = Mathf.Max(1, staminaRecoveryMax);
+        var intervalMinutes = Mathf.Max(1, staminaRecoveryIntervalMinutes);
+        var intervalTicks = TimeSpan.FromMinutes(intervalMinutes).Ticks;
+        var changed = false;
+
+        if (currentStaminaCount >= maxStamina)
+        {
+            if (staminaRecoveryStartUtcTicks > 0)
+            {
+                staminaRecoveryStartUtcTicks = -1L;
+                changed = true;
+            }
+
+            if (changed && saveWhenChanged)
+            {
+                SaveEconomyState();
+            }
+
+            return changed;
+        }
+
+        var nowTicks = DateTime.UtcNow.Ticks;
+        if (staminaRecoveryStartUtcTicks <= 0 || staminaRecoveryStartUtcTicks > nowTicks)
+        {
+            staminaRecoveryStartUtcTicks = nowTicks;
+            changed = true;
+        }
+
+        var elapsedTicks = nowTicks - staminaRecoveryStartUtcTicks;
+        if (elapsedTicks >= intervalTicks)
+        {
+            var recoverCount = (int)(elapsedTicks / intervalTicks);
+            if (recoverCount > 0)
+            {
+                var add = Mathf.Min(recoverCount, maxStamina - currentStaminaCount);
+                if (add > 0)
+                {
+                    currentStaminaCount = Mathf.Max(0, currentStaminaCount + add);
+                    staminaRecoveryStartUtcTicks += intervalTicks * add;
+                    changed = true;
+                }
+
+                if (currentStaminaCount >= maxStamina)
+                {
+                    staminaRecoveryStartUtcTicks = -1L;
+                }
+            }
+        }
+
+        if (changed && saveWhenChanged)
+        {
+            SaveEconomyState();
+        }
+
+        return changed;
+    }
+
+    private bool TryGetStaminaRecoveryCountdownText(out string countdownText)
+    {
+        countdownText = string.Empty;
+        if (currentStaminaCount >= Mathf.Max(1, staminaRecoveryMax) || staminaRecoveryStartUtcTicks <= 0)
+        {
+            return false;
+        }
+
+        var interval = TimeSpan.FromMinutes(Mathf.Max(1, staminaRecoveryIntervalMinutes));
+        var elapsed = TimeSpan.FromTicks(Math.Max(0L, DateTime.UtcNow.Ticks - staminaRecoveryStartUtcTicks));
+        var remaining = interval - TimeSpan.FromTicks(elapsed.Ticks % interval.Ticks);
+        if (remaining <= TimeSpan.Zero)
+        {
+            remaining = interval;
+        }
+
+        countdownText = $"{Mathf.Max(0, remaining.Minutes):00}:{Mathf.Max(0, remaining.Seconds):00}";
+        return true;
+    }
+
+    private void EnsureStaminaInsufficientBubble()
+    {
+        var canvas = EnsureUICanvas();
+        if (canvas == null)
+        {
+            return;
+        }
+
+        if (staminaInsufficientBubbleRoot == null)
+        {
+            var existing = canvas.transform.Find("StaminaInsufficientBubble") as RectTransform;
+            if (existing != null)
+            {
+                staminaInsufficientBubbleRoot = existing;
+            }
+            else
+            {
+                var bubbleObj = new GameObject("StaminaInsufficientBubble", typeof(RectTransform), typeof(Image));
+                staminaInsufficientBubbleRoot = bubbleObj.GetComponent<RectTransform>();
+                bubbleObj.transform.SetParent(canvas.transform, false);
+                var image = bubbleObj.GetComponent<Image>();
+                image.color = new Color(0.08f, 0.08f, 0.08f, 0.88f);
+                image.raycastTarget = false;
+
+                var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
+                textObj.transform.SetParent(bubbleObj.transform, false);
+                staminaInsufficientBubbleTextRef = textObj.GetComponent<Text>();
+            }
+        }
+
+        if (staminaInsufficientBubbleRoot == null)
+        {
+            return;
+        }
+
+        staminaInsufficientBubbleRoot.anchorMin = new Vector2(0.5f, 0f);
+        staminaInsufficientBubbleRoot.anchorMax = new Vector2(0.5f, 0f);
+        staminaInsufficientBubbleRoot.pivot = new Vector2(0.5f, 0f);
+        staminaInsufficientBubbleRoot.sizeDelta = staminaInsufficientBubbleSize;
+        staminaInsufficientBubbleRoot.anchoredPosition = staminaInsufficientBubblePosition;
+
+        if (staminaInsufficientBubbleTextRef == null)
+        {
+            staminaInsufficientBubbleTextRef = staminaInsufficientBubbleRoot.Find("Text")?.GetComponent<Text>();
+        }
+
+        if (staminaInsufficientBubbleTextRef != null)
+        {
+            var textRect = staminaInsufficientBubbleTextRef.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            staminaInsufficientBubbleTextRef.font = staminaInsufficientBubbleTextRef.font
+                ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
+            staminaInsufficientBubbleTextRef.fontSize = Mathf.Max(18, economyHudFontSize - 2);
+            staminaInsufficientBubbleTextRef.alignment = TextAnchor.MiddleCenter;
+            staminaInsufficientBubbleTextRef.color = Color.white;
+            staminaInsufficientBubbleTextRef.raycastTarget = false;
+            staminaInsufficientBubbleTextRef.text = staminaInsufficientBubbleText;
+        }
+
+        staminaInsufficientBubbleRoot.gameObject.SetActive(false);
+    }
+
+    private void ShowStaminaInsufficientBubble()
+    {
+        EnsureStaminaInsufficientBubble();
+        if (staminaInsufficientBubbleRoot == null)
+        {
+            return;
+        }
+
+        if (staminaInsufficientBubbleRoutine != null)
+        {
+            StopCoroutine(staminaInsufficientBubbleRoutine);
+            staminaInsufficientBubbleRoutine = null;
+        }
+
+        if (staminaInsufficientBubbleTextRef != null)
+        {
+            staminaInsufficientBubbleTextRef.text = staminaInsufficientBubbleText;
+        }
+
+        staminaInsufficientBubbleRoot.gameObject.SetActive(true);
+        staminaInsufficientBubbleRoutine = StartCoroutine(HideStaminaInsufficientBubbleRoutine());
+        BringOverlayForegroundElements();
+    }
+
+    private IEnumerator HideStaminaInsufficientBubbleRoutine()
+    {
+        yield return new WaitForSecondsRealtime(Mathf.Max(0.1f, staminaInsufficientBubbleDuration));
+        if (staminaInsufficientBubbleRoot != null)
+        {
+            staminaInsufficientBubbleRoot.gameObject.SetActive(false);
+        }
+
+        staminaInsufficientBubbleRoutine = null;
+    }
+
+    private void UpdateRestartConfirmButtonVisualState()
+    {
+        if (restartFromSettingsButton == null)
+        {
+            return;
+        }
+
+        var image = restartFromSettingsButton.GetComponent<Image>();
+        if (image == null)
+        {
+            return;
+        }
+
+        var hasStamina = currentStaminaCount > 0;
+        image.color = hasStamina
+            ? new Color(0.16f, 0.2f, 0.28f, 0.92f)
+            : new Color(0.35f, 0.35f, 0.35f, 0.92f);
+
+        var colors = restartFromSettingsButton.colors;
+        colors.normalColor = image.color;
+        colors.highlightedColor = hasStamina ? new Color(0.22f, 0.28f, 0.38f, 0.96f) : image.color;
+        colors.pressedColor = hasStamina ? new Color(0.1f, 0.14f, 0.2f, 1f) : image.color;
+        colors.selectedColor = colors.highlightedColor;
+        restartFromSettingsButton.colors = colors;
+    }
+
+    private int GrantCoinsByWin()
+    {
+        var reward = Mathf.Max(0, winRewardCoinCount);
+        if (reward <= 0)
+        {
+            return 0;
+        }
+
+        currentCoinCount = Mathf.Max(0, currentCoinCount + reward);
+        SaveEconomyState();
+        UpdateEconomyHud();
+        LogInfo($"通关奖励金币 | reward={reward} | totalCoin={currentCoinCount}");
+        return reward;
     }
 
     private void EnsureModeToggleButton()
@@ -3360,6 +5609,11 @@ public class ShelfSpawnManager : MonoBehaviour
         if (canvas == null)
         {
             return;
+        }
+
+        if (Vector2.Distance(modeToggleButtonPosition, LegacyModeToggleButtonPosition) < 0.001f)
+        {
+            modeToggleButtonPosition = DefaultTopRightModeToggleButtonPosition;
         }
 
         var button = modeToggleButton;
@@ -3380,15 +5634,311 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         var rect = modeToggleButton.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0f);
-        rect.anchorMax = new Vector2(0.5f, 0f);
-        rect.pivot = new Vector2(0.5f, 0f);
+        rect.anchorMin = new Vector2(1f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
         rect.sizeDelta = modeToggleButtonSize;
         rect.anchoredPosition = modeToggleButtonPosition;
 
         modeToggleButton.onClick.RemoveListener(ToggleRuntimeModeByButton);
         modeToggleButton.onClick.AddListener(ToggleRuntimeModeByButton);
         UpdateModeToggleButtonLabel();
+    }
+
+    private void EnsureRestartSettingsButton()
+    {
+        if (!showRestartSettingsButton)
+        {
+            ApplyRestartSettingsButtonVisibility();
+            return;
+        }
+
+        var canvas = EnsureUICanvas();
+        if (canvas == null)
+        {
+            return;
+        }
+
+        if (restartSettingsButton == null)
+        {
+            restartSettingsButton = EnsureSimpleButton(
+                "RestartSettingsButton",
+                restartSettingsButtonSize,
+                restartSettingsButtonPosition,
+                OpenRestartSettingsOverlay);
+        }
+
+        if (restartSettingsButton == null)
+        {
+            return;
+        }
+
+        if (restartSettingsButton.transform.parent != canvas.transform)
+        {
+            restartSettingsButton.transform.SetParent(canvas.transform, false);
+        }
+
+        var rect = restartSettingsButton.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.sizeDelta = restartSettingsButtonSize;
+        rect.anchoredPosition = restartSettingsButtonPosition;
+
+        var label = restartSettingsButton.GetComponentInChildren<Text>(true);
+        if (label != null)
+        {
+            label.text = restartSettingsButtonText;
+        }
+
+        restartSettingsButton.onClick.RemoveListener(OpenRestartSettingsOverlay);
+        restartSettingsButton.onClick.AddListener(OpenRestartSettingsOverlay);
+        ApplyRestartSettingsButtonVisibility();
+    }
+
+    private void ApplyRestartSettingsButtonVisibility()
+    {
+        if (restartSettingsButton == null)
+        {
+            return;
+        }
+
+        var visible = showRestartSettingsButton && runtimeMode == RuntimeMode.GameMode;
+        restartSettingsButton.gameObject.SetActive(visible);
+        if (!visible)
+        {
+            HideRestartSettingsOverlay();
+        }
+    }
+
+    private void EnsureTestClearSaveButton()
+    {
+        if (!showTestClearSaveButton)
+        {
+            ApplyTestClearSaveButtonVisibility();
+            return;
+        }
+
+        var canvas = EnsureUICanvas();
+        if (canvas == null)
+        {
+            return;
+        }
+
+        if (testClearSaveButton == null)
+        {
+            testClearSaveButton = EnsureSimpleButton(
+                "TestClearSaveButton",
+                testClearSaveButtonSize,
+                testClearSaveButtonPosition,
+                ClearTestSaveDataByButton);
+        }
+
+        if (testClearSaveButton == null)
+        {
+            return;
+        }
+
+        if (testClearSaveButton.transform.parent != canvas.transform)
+        {
+            testClearSaveButton.transform.SetParent(canvas.transform, false);
+        }
+
+        var rect = testClearSaveButton.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(1f, 0f);
+        rect.anchorMax = new Vector2(1f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.sizeDelta = testClearSaveButtonSize;
+        rect.anchoredPosition = testClearSaveButtonPosition;
+
+        var label = testClearSaveButton.GetComponentInChildren<Text>(true);
+        if (label != null)
+        {
+            label.text = testClearSaveButtonText;
+        }
+
+        testClearSaveButton.onClick.RemoveListener(ClearTestSaveDataByButton);
+        testClearSaveButton.onClick.AddListener(ClearTestSaveDataByButton);
+        ApplyTestClearSaveButtonVisibility();
+    }
+
+    private void ApplyTestClearSaveButtonVisibility()
+    {
+        if (testClearSaveButton == null)
+        {
+            return;
+        }
+
+        testClearSaveButton.gameObject.SetActive(showTestClearSaveButton);
+    }
+
+    private void ClearTestSaveDataByButton()
+    {
+        UnityEngine.PlayerPrefs.DeleteKey(EconomyCoinPrefKey);
+        UnityEngine.PlayerPrefs.DeleteKey(EconomyStaminaPrefKey);
+        UnityEngine.PlayerPrefs.DeleteKey(EconomyStaminaRecoveryStartTicksPrefKey);
+        UnityEngine.PlayerPrefs.Save();
+
+        staminaConsumedForCurrentRound = false;
+        staminaRecoveryStartUtcTicks = -1L;
+        InitializeEconomyState();
+        UpdateEconomyHud();
+        ApplyBoxInteractionMode();
+        LogInfo("测试清档完成：金币与体力存档已重置。", this);
+    }
+
+    private void OpenRestartSettingsOverlay()
+    {
+        if (runtimeMode != RuntimeMode.GameMode)
+        {
+            return;
+        }
+
+        EnsureRestartSettingsOverlay();
+        if (restartSettingsOverlayRoot == null)
+        {
+            return;
+        }
+
+        restartSettingsOverlayRoot.gameObject.SetActive(true);
+        UpdateRestartConfirmButtonVisualState();
+        BringOverlayForegroundElements();
+    }
+
+    private void HideRestartSettingsOverlay()
+    {
+        if (restartSettingsOverlayRoot != null)
+        {
+            restartSettingsOverlayRoot.gameObject.SetActive(false);
+        }
+    }
+
+    private void EnsureRestartSettingsOverlay()
+    {
+        var canvas = EnsureUICanvas();
+        if (canvas == null)
+        {
+            return;
+        }
+
+        if (restartSettingsOverlayRoot == null)
+        {
+            var existing = canvas.transform.Find("RestartSettingsOverlay") as RectTransform;
+            if (existing != null)
+            {
+                restartSettingsOverlayRoot = existing;
+            }
+            else
+            {
+                var overlayObj = new GameObject("RestartSettingsOverlay", typeof(RectTransform), typeof(Image), typeof(Button));
+                restartSettingsOverlayRoot = overlayObj.GetComponent<RectTransform>();
+                overlayObj.transform.SetParent(canvas.transform, false);
+
+                var panelObj = new GameObject("Panel", typeof(RectTransform), typeof(Image));
+                panelObj.transform.SetParent(restartSettingsOverlayRoot, false);
+                restartSettingsPanelRoot = panelObj.GetComponent<RectTransform>();
+                CreatePanelButton(
+                    restartSettingsPanelRoot,
+                    "RestartButton",
+                    restartConfirmButtonText,
+                    restartConfirmButtonPosition,
+                    restartConfirmButtonSize,
+                    RestartRoundFromSettingsByButton);
+            }
+        }
+
+        if (restartSettingsOverlayRoot == null)
+        {
+            return;
+        }
+
+        var overlayImage = restartSettingsOverlayRoot.GetComponent<Image>();
+        if (overlayImage == null)
+        {
+            overlayImage = restartSettingsOverlayRoot.gameObject.AddComponent<Image>();
+        }
+
+        overlayImage.color = restartSettingsOverlayColor;
+        overlayImage.raycastTarget = true;
+
+        var overlayButton = restartSettingsOverlayRoot.GetComponent<Button>();
+        if (overlayButton == null)
+        {
+            overlayButton = restartSettingsOverlayRoot.gameObject.AddComponent<Button>();
+        }
+
+        var overlayColors = overlayButton.colors;
+        overlayColors.normalColor = Color.white;
+        overlayColors.highlightedColor = Color.white;
+        overlayColors.pressedColor = Color.white;
+        overlayColors.selectedColor = Color.white;
+        overlayButton.colors = overlayColors;
+        overlayButton.targetGraphic = overlayImage;
+        overlayButton.onClick.RemoveListener(HideRestartSettingsOverlay);
+        overlayButton.onClick.AddListener(HideRestartSettingsOverlay);
+
+        restartSettingsOverlayRoot.anchorMin = Vector2.zero;
+        restartSettingsOverlayRoot.anchorMax = Vector2.one;
+        restartSettingsOverlayRoot.offsetMin = Vector2.zero;
+        restartSettingsOverlayRoot.offsetMax = Vector2.zero;
+
+        if (restartSettingsPanelRoot == null)
+        {
+            restartSettingsPanelRoot = restartSettingsOverlayRoot.Find("Panel") as RectTransform;
+        }
+
+        if (restartSettingsPanelRoot != null)
+        {
+            restartSettingsPanelRoot.anchorMin = new Vector2(0.5f, 0.5f);
+            restartSettingsPanelRoot.anchorMax = new Vector2(0.5f, 0.5f);
+            restartSettingsPanelRoot.pivot = new Vector2(0.5f, 0.5f);
+            restartSettingsPanelRoot.sizeDelta = restartSettingsPanelSize;
+            restartSettingsPanelRoot.anchoredPosition = restartSettingsPanelPosition;
+
+            var panelImage = restartSettingsPanelRoot.GetComponent<Image>();
+            if (panelImage == null)
+            {
+                panelImage = restartSettingsPanelRoot.gameObject.AddComponent<Image>();
+            }
+
+            panelImage.color = restartSettingsPanelColor;
+            panelImage.raycastTarget = true;
+        }
+
+        if (restartFromSettingsButton == null && restartSettingsPanelRoot != null)
+        {
+            restartFromSettingsButton = restartSettingsPanelRoot.Find("RestartButton")?.GetComponent<Button>();
+        }
+
+        if (restartFromSettingsButton != null)
+        {
+            var buttonRect = restartFromSettingsButton.GetComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(0.5f, 1f);
+            buttonRect.anchorMax = new Vector2(0.5f, 1f);
+            buttonRect.pivot = new Vector2(0.5f, 1f);
+            buttonRect.sizeDelta = restartConfirmButtonSize;
+            buttonRect.anchoredPosition = restartConfirmButtonPosition;
+
+            var label = restartFromSettingsButton.GetComponentInChildren<Text>(true);
+            if (label != null)
+            {
+                label.text = restartConfirmButtonText;
+            }
+
+            restartFromSettingsButton.onClick.RemoveListener(RestartRoundFromSettingsByButton);
+            restartFromSettingsButton.onClick.AddListener(RestartRoundFromSettingsByButton);
+        }
+
+        UpdateRestartConfirmButtonVisualState();
+
+        restartSettingsOverlayRoot.gameObject.SetActive(false);
+    }
+
+    private void RestartRoundFromSettingsByButton()
+    {
+        applyRestartColorVariationOnNextRefresh = true;
+        HideRestartSettingsOverlay();
+        RestartRoundByButton();
     }
 
     private void EnsureDesignToolsPanel()
@@ -3925,7 +6475,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (picked != null)
         {
-            catIntroRoutine = StartCoroutine(PlayCatIntroRoutine(picked));
+            catIntroRoutine = StartCoroutine(PlayCatIntroRoutine());
         }
 
         catHintRoutine = StartCoroutine(ShowCatHintRoutine());
@@ -3961,7 +6511,7 @@ public class ShelfSpawnManager : MonoBehaviour
         return list;
     }
 
-    private IEnumerator PlayCatIntroRoutine(Transform targetBox)
+    private IEnumerator PlayCatIntroRoutine()
     {
         StopCatIntroVisual();
 
@@ -4011,21 +6561,6 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.SetAsLastSibling();
         BringOverlayForegroundElements();
 
-        var targetPosition = startPosition;
-        if (catShrinkTowardTargetBox && targetBox != null)
-        {
-            var cameraRef = Camera.main;
-            if (cameraRef != null)
-            {
-                var targetWorldCenter = ResolveTargetCenterWorldPosition(targetBox);
-                var screenPoint = cameraRef.WorldToScreenPoint(targetWorldCenter);
-                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPoint, null, out var localPoint))
-                {
-                    targetPosition = localPoint;
-                }
-            }
-        }
-
         if (catStayDuration > 0f)
         {
             yield return new WaitForSecondsRealtime(catStayDuration);
@@ -4039,23 +6574,16 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         var minScale = rect.localScale * Mathf.Clamp(catMinScaleFactor, 0.01f, 1f);
-        var stopThreshold = 1.5f;
         while (runtimeCatIntroUi != null)
         {
-            var moveStep = Mathf.Max(10f, catMoveSpeed) * Time.unscaledDeltaTime;
-            rect.anchoredPosition = Vector2.MoveTowards(rect.anchoredPosition, targetPosition, moveStep);
-
-            if ((rect.localScale - minScale).sqrMagnitude > 0.000001f)
+            if ((rect.localScale - minScale).sqrMagnitude <= 0.000001f)
             {
-                var scaleStep = Mathf.Max(0.01f, catShrinkSpeed) * Time.unscaledDeltaTime;
-                rect.localScale = Vector3.MoveTowards(rect.localScale, minScale, scaleStep);
-            }
-
-            if (Vector2.Distance(rect.anchoredPosition, targetPosition) <= stopThreshold)
-            {
-                rect.anchoredPosition = targetPosition;
+                rect.localScale = minScale;
                 break;
             }
+
+            var scaleStep = Mathf.Max(0.01f, catShrinkSpeed) * Time.unscaledDeltaTime;
+            rect.localScale = Vector3.MoveTowards(rect.localScale, minScale, scaleStep);
 
             yield return null;
         }
@@ -4070,6 +6598,8 @@ public class ShelfSpawnManager : MonoBehaviour
         if (hintText != null)
         {
             hintText.text = catHintMessage;
+            //设置提示文案的位置
+            hintText.rectTransform.anchoredPosition = new Vector2(0f, -400f);
             hintText.gameObject.SetActive(true);
         }
 
@@ -4077,11 +6607,6 @@ public class ShelfSpawnManager : MonoBehaviour
         var duration = Mathf.Max(0f, catHintDuration);
         while (elapsed < duration)
         {
-            if (IsAnyPointerDown())
-            {
-                break;
-            }
-
             elapsed += Time.unscaledDeltaTime;
             yield return null;
         }
@@ -4298,6 +6823,31 @@ public class ShelfSpawnManager : MonoBehaviour
             modeToggleButton.transform.SetAsLastSibling();
         }
 
+        if (restartSettingsButton != null)
+        {
+            restartSettingsButton.transform.SetAsLastSibling();
+        }
+
+        if (testClearSaveButton != null)
+        {
+            testClearSaveButton.transform.SetAsLastSibling();
+        }
+
+        if (winResultPanelRoot != null)
+        {
+            winResultPanelRoot.transform.SetAsLastSibling();
+        }
+
+        if (coinHudTextRef != null)
+        {
+            coinHudTextRef.transform.SetAsLastSibling();
+        }
+
+        if (staminaHudTextRef != null)
+        {
+            staminaHudTextRef.transform.SetAsLastSibling();
+        }
+
         if (catHintTextRef != null)
         {
             catHintTextRef.transform.SetAsLastSibling();
@@ -4311,6 +6861,16 @@ public class ShelfSpawnManager : MonoBehaviour
         if (runtimeCatIntroUi != null)
         {
             runtimeCatIntroUi.transform.SetAsLastSibling();
+        }
+
+        if (restartSettingsOverlayRoot != null && restartSettingsOverlayRoot.gameObject.activeInHierarchy)
+        {
+            restartSettingsOverlayRoot.transform.SetAsLastSibling();
+        }
+
+        if (staminaInsufficientBubbleRoot != null && staminaInsufficientBubbleRoot.gameObject.activeInHierarchy)
+        {
+            staminaInsufficientBubbleRoot.transform.SetAsLastSibling();
         }
     }
 
@@ -4387,6 +6947,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void HideWinMessage()
     {
+        HideWinResultPanel();
         if (catWinTextRef != null)
         {
             catWinTextRef.gameObject.SetActive(false);
@@ -4443,6 +7004,7 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         gameWon = true;
+        var reward = GrantCoinsByWin();
         if (catIntroRoutine != null)
         {
             StopCoroutine(catIntroRoutine);
@@ -4458,13 +7020,7 @@ public class ShelfSpawnManager : MonoBehaviour
         StopCatIntroVisual();
         HideHintMessage();
         ShowDimOverlay();
-
-        var winText = EnsureOverlayText(CatUiType.Win);
-        if (winText != null)
-        {
-            winText.text = catWinMessage;
-            winText.gameObject.SetActive(true);
-        }
+        ShowWinResultPanel(reward);
 
         var allBoxInteractions = FindObjectsOfType<BoxInteractionController>(true);
         for (var i = 0; i < allBoxInteractions.Length; i++)
@@ -4698,7 +7254,7 @@ public class ShelfSpawnManager : MonoBehaviour
             text.color = Color.white;
         }
 
-        regenerateButton.gameObject.SetActive(true);
+        ApplyRegenerateButtonVisibility();
         var rect = regenerateButton.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0f, 1f);
         rect.anchorMax = new Vector2(0f, 1f);
@@ -4716,6 +7272,137 @@ public class ShelfSpawnManager : MonoBehaviour
         regenerateButton.onClick.RemoveListener(RegenerateShelves);
         regenerateButton.onClick.AddListener(RestartRoundByButton);
         BringOverlayForegroundElements();
+    }
+
+    private void ApplyRegenerateButtonVisibility()
+    {
+        if (regenerateButton == null)
+        {
+            return;
+        }
+
+        regenerateButton.gameObject.SetActive(showRegenerateButton && !hidePrimaryControlButtons);
+    }
+
+    private void EnsureGameplayActionButtons()
+    {
+        if (!showGameplayActionButtons)
+        {
+            if (refreshActionButton != null)
+            {
+                refreshActionButton.gameObject.SetActive(false);
+            }
+
+            if (undoActionButton != null)
+            {
+                undoActionButton.gameObject.SetActive(false);
+            }
+
+            if (addEmptyShelfActionButton != null)
+            {
+                addEmptyShelfActionButton.gameObject.SetActive(false);
+            }
+
+            return;
+        }
+
+        refreshActionButton = EnsureGameplayActionButton(
+            refreshActionButton,
+            "RefreshActionButton",
+            refreshActionButtonText,
+            refreshActionButtonPosition,
+            RefreshShelfColorByButton);
+
+        undoActionButton = EnsureGameplayActionButton(
+            undoActionButton,
+            "UndoActionButton",
+            undoActionButtonText,
+            undoActionButtonPosition,
+            UndoLastMoveByButton);
+
+        addEmptyShelfActionButton = EnsureGameplayActionButton(
+            addEmptyShelfActionButton,
+            "AddEmptyShelfActionButton",
+            addEmptyShelfActionButtonText,
+            addEmptyShelfActionButtonPosition,
+            AddEmptyShelfByButton);
+
+        ApplyGameplayActionButtonsVisibility();
+    }
+
+    private Button EnsureGameplayActionButton(
+        Button existing,
+        string objectName,
+        string buttonText,
+        Vector2 anchoredPos,
+        UnityEngine.Events.UnityAction onClick)
+    {
+        var button = existing;
+        var createdByManager = false;
+
+        if (button == null)
+        {
+            var allButtons = FindObjectsOfType<Button>(true);
+            for (var i = 0; i < allButtons.Length; i++)
+            {
+                if (allButtons[i] != null && allButtons[i].name == objectName)
+                {
+                    button = allButtons[i];
+                    break;
+                }
+            }
+        }
+
+        if (button == null)
+        {
+            button = EnsureSimpleButton(objectName, gameplayActionButtonSize, anchoredPos, onClick);
+            createdByManager = true;
+        }
+
+        if (button == null)
+        {
+            return null;
+        }
+
+        button.onClick.RemoveListener(onClick);
+        button.onClick.AddListener(onClick);
+
+        if (createdByManager)
+        {
+            var rect = button.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = gameplayActionButtonSize;
+            rect.anchoredPosition = anchoredPos;
+
+            var label = button.GetComponentInChildren<Text>(true);
+            if (label != null)
+            {
+                label.text = buttonText;
+            }
+        }
+
+        return button;
+    }
+
+    private void ApplyGameplayActionButtonsVisibility()
+    {
+        var visible = showGameplayActionButtons && runtimeMode == RuntimeMode.GameMode;
+        if (refreshActionButton != null)
+        {
+            refreshActionButton.gameObject.SetActive(visible);
+        }
+
+        if (undoActionButton != null)
+        {
+            undoActionButton.gameObject.SetActive(visible);
+        }
+
+        if (addEmptyShelfActionButton != null)
+        {
+            addEmptyShelfActionButton.gameObject.SetActive(visible);
+        }
     }
 
     private Canvas EnsureUICanvas()

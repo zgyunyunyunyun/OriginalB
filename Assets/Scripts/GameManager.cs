@@ -118,6 +118,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Shelf Integration")]
     [SerializeField] private ShelfSpawnManager shelfSpawnManager;
+    [SerializeField] private bool hidePrimaryControlButtons;
 
     [Header("Box Generation")]
     [SerializeField] private BoxGenerationManager boxGenerationManager;
@@ -1024,6 +1025,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        shelfSpawnManager.SetPrimaryControlButtonsHidden(hidePrimaryControlButtons);
         shelfSpawnManager.SetBoxGenerationManager(boxGenerationManager);
 
         shelfSpawnManager.RefreshShelves(GetTargetShelfCount());

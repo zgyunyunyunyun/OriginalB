@@ -8,6 +8,15 @@ using UnityEngine;
 
 namespace OriginalB.Platform.Bootstrap
 {
+    internal static class ChannelSdkSwitch
+    {
+#if ENABLE_CHANNEL_SDK
+        public const bool Enabled = true;
+#else
+        public const bool Enabled = false;
+#endif
+    }
+
     [DefaultExecutionOrder(-1000)]
     public class PlatformBootstrap : MonoBehaviour
     {
@@ -80,6 +89,19 @@ namespace OriginalB.Platform.Bootstrap
 
         private static void RegisterPlatformSpecificCoreServices()
         {
+            if (!ChannelSdkSwitch.Enabled)
+            {
+                ServiceLocator.Register<IPlatformContext>(new CommonPlatformContext());
+                ServiceLocator.Register<IInputService>(new CommonInputService());
+                ServiceLocator.Register<ILogService>(new CommonLogService());
+                ServiceLocator.Register<IStorageService>(new CommonStorageService());
+                ServiceLocator.Register<IAuthService>(new CommonAuthService());
+                ServiceLocator.Register<IAdService>(new CommonAdService());
+                ServiceLocator.Register<IShareService>(new CommonShareService());
+                ServiceLocator.Register<IAnalyticsService>(new CommonAnalyticsService());
+                return;
+            }
+
 #if PLATFORM_WECHAT
             ServiceLocator.Register<IPlatformContext>(new WeChatPlatformContext());
             ServiceLocator.Register<IInputService>(new WeChatInputService());
@@ -94,10 +116,10 @@ namespace OriginalB.Platform.Bootstrap
             ServiceLocator.Register<IInputService>(new DouyinInputService());
             ServiceLocator.Register<ILogService>(new DouyinLogService());
             ServiceLocator.Register<IStorageService>(new DouyinStorageService());
-        ServiceLocator.Register<IAuthService>(new DouyinAuthService());
-        ServiceLocator.Register<IAdService>(new DouyinAdService());
-        ServiceLocator.Register<IShareService>(new DouyinShareService());
-        ServiceLocator.Register<IAnalyticsService>(new DouyinAnalyticsService());
+            ServiceLocator.Register<IAuthService>(new DouyinAuthService());
+            ServiceLocator.Register<IAdService>(new DouyinAdService());
+            ServiceLocator.Register<IShareService>(new DouyinShareService());
+            ServiceLocator.Register<IAnalyticsService>(new DouyinAnalyticsService());
 #else
             ServiceLocator.Register<IPlatformContext>(new CommonPlatformContext());
             ServiceLocator.Register<IInputService>(new CommonInputService());

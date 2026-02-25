@@ -111,6 +111,72 @@ public class ShelfInteractionController : MonoBehaviour
         return false;
     }
 
+    private void OnMouseUpAsButton()
+    {
+        if (IsPointerOverAnyBox())
+        {
+            return;
+        }
+
+        if (BoxInteractionController.TryHandleShelfClickWithActiveSwaying(this))
+        {
+            return;
+        }
+
+        if (stackRoot == null || stackRoot.childCount <= 0)
+        {
+            return;
+        }
+
+        var topBox = stackRoot.GetChild(stackRoot.childCount - 1);
+        if (topBox == null)
+        {
+            return;
+        }
+
+        var topBoxController = topBox.GetComponent<BoxInteractionController>();
+        if (topBoxController == null)
+        {
+            return;
+        }
+
+        topBoxController.TryStartLiftAndSwayByClick();
+    }
+
+    private static bool IsPointerOverAnyBox()
+    {
+        var cameraRef = Camera.main;
+        if (cameraRef == null)
+        {
+            return false;
+        }
+
+        var pointer = Input.mousePosition;
+        var world = cameraRef.ScreenToWorldPoint(pointer);
+        var point = new Vector2(world.x, world.y);
+        var hits = Physics2D.OverlapPointAll(point, ~0);
+        if (hits == null || hits.Length == 0)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < hits.Length; i++)
+        {
+            var hit = hits[i];
+            if (hit == null)
+            {
+                continue;
+            }
+
+            if (hit.GetComponentInParent<BoxInteractionController>() != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool TryGetTopByBounds(Transform target, out Vector3 top)
     {
         var renderer = target.GetComponentInChildren<Renderer>(true);
