@@ -1082,7 +1082,7 @@ MonoBehaviour:
   shelfPrefab: {fileID: 7884151283758860229, guid: 142ae4fdf325cdc4394b406dab00bcd4, type: 3}
   shelfRoot: {fileID: 2124350419}
   autoSpawnShelves: 1
-  previewShelfCount: 8
+  previewShelfCount: 12
   viewportHorizontalPadding: 0.1
   viewportVerticalPadding: 0.25
   viewportInnerRadius: 0.05
@@ -1128,6 +1128,7 @@ MonoBehaviour:
   catHintMessage: "\u627E\u5230\u8EB2\u5728\u7BB1\u5B50\u91CC\u7684\u5C0F\u732B"
   catHintDuration: 2
   catWinMessage: "\u627E\u5230\u4E86\u5C0F\u732B\uFF0C\u6E38\u620F\u901A\u5173"
+  finalDesignedLevelWinMessage: "\u5DF2\u5168\u90E8\u901A\u5173\uFF0C\u656C\u8BF7\u671F\u5F85"
   showRegenerateButton: 1
   regenerateButtonText: "\u91CD\u65B0\u4EA7\u751F\u8D27\u67B6"
   regenerateButtonSize: {x: 220, y: 56}
@@ -1236,6 +1237,8 @@ MonoBehaviour:
   legacyShelfNameKeyword: shelf
   enableDebugLog: 1
   enableDebugFileLog: 1
+  enableEliminationSnapshotLog: 1
+  eliminationSnapshotLogCooldown: 0.1
 --- !u!4 &1073249298
 Transform:
   m_ObjectHideFlags: 0

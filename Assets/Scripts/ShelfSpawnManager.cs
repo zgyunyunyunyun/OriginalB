@@ -79,6 +79,7 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private string catHintMessage = "找到躲在箱子里的小猫";
     [SerializeField, Min(0f)] private float catHintDuration = 2f;
     [SerializeField] private string catWinMessage = "找到了小猫，游戏通关";
+    [SerializeField] private string finalDesignedLevelWinMessage = "您已通过最后一关\n后续更多关卡敬请期待！";
 
     [Header("UI")]
     [SerializeField] private bool showRegenerateButton = true;
@@ -246,6 +247,7 @@ public class ShelfSpawnManager : MonoBehaviour
     private readonly List<TruckRuntimeData> activeTrucks = new List<TruckRuntimeData>();
     private bool truckEliminationRunning;
     private bool gameWon;
+    private bool isFinalDesignedLevelWin;
     private Coroutine catIntroRoutine;
     private Coroutine catHintRoutine;
     private Coroutine refreshShakeRoutine;
@@ -571,18 +573,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (shouldUseDesignedLayout && runtimeMode == RuntimeMode.GameMode)
         {
-            if (TryLoadFirstDesignedLevel(out var firstLevelData, out var firstLevelIndex) && firstLevelData != null)
-            {
-                currentLevelIndex = Mathf.Max(1, firstLevelIndex);
-                SpawnDesignedLayout(firstLevelData);
-                FinalizeAfterShelvesSpawned();
-                LogWarn($"Current level not found in designed file, fallback to first designed level: {currentLevelIndex}", this);
-                return;
-            }
-
-            LogWarn("No designed levels found for game mode. Skip random generation as configured.", this);
-            FinalizeAfterShelvesSpawned();
-            return;
+            LogWarn($"Current level designed layout not found, fallback to random generation | levelIndex={Mathf.Max(1, currentLevelIndex)} | levelId={GetCurrentLevelId()}", this);
         }
 
         var derivedTotalBoxCount = ResolveConfiguredTotalBoxCount(targetCount);
@@ -792,6 +783,12 @@ public class ShelfSpawnManager : MonoBehaviour
 
     public void GoToNextLevelByButton()
     {
+        if (runtimeMode == RuntimeMode.GameMode && isFinalDesignedLevelWin)
+        {
+            LogInfo($"Next level blocked: already passed last designed level | level={Mathf.Max(1, currentLevelIndex)}");
+            return;
+        }
+
         currentLevelIndex = Mathf.Max(1, currentLevelIndex + 1);
         PrepareForLevelSwitch();
         UpdateLevelIndicator();
@@ -1590,6 +1587,42 @@ public class ShelfSpawnManager : MonoBehaviour
         return true;
     }
 
+    private bool IsCurrentLevelFinalDesignedLevel()
+    {
+        if (runtimeMode != RuntimeMode.GameMode || !useDesignedLevelInGameMode)
+        {
+            return false;
+        }
+
+        if (!TryLoadDesignedLevelCollection(out var collection) || collection == null || collection.levels == null || collection.levels.Count == 0)
+        {
+            return false;
+        }
+
+        var maxIndex = 0;
+        for (var i = 0; i < collection.levels.Count; i++)
+        {
+            var level = collection.levels[i];
+            if (level == null || level.shelves == null || level.shelves.Count <= 0)
+            {
+                continue;
+            }
+
+            var idx = ResolveDesignedLevelIndex(level);
+            if (idx > maxIndex)
+            {
+                maxIndex = idx;
+            }
+        }
+
+        if (maxIndex <= 0)
+        {
+            return false;
+        }
+
+        return Mathf.Max(1, currentLevelIndex) >= maxIndex;
+    }
+
     private string GetCurrentLevelId()
     {
         if (useNumericLevelId)
@@ -1607,6 +1640,7 @@ public class ShelfSpawnManager : MonoBehaviour
     {
         staminaConsumedForCurrentRound = false;
         gameWon = false;
+        isFinalDesignedLevelWin = false;
         HideDimOverlay();
         HideWinResultPanel();
         if (Mathf.Abs(Time.timeScale) < 0.0001f)
@@ -3837,12 +3871,18 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        var totalDemand = BuildRemainingDemandByColor();
+        var totalDemand = BuildRemainingDemandByColor(true);
         var demandCount = totalDemand.Values.Sum();
         var truckCount = Mathf.Clamp(demandCount, 0, Mathf.Max(1, maxTruckCount));
+        LogInfo($"Spawn trucks demand summary | demandTrips={FormatTruckColorCountMap(totalDemand)} | demandCount={demandCount} | maxTruckCount={Mathf.Max(1, maxTruckCount)}");
+        LogInfo($"Spawn trucks box snapshot | detail={BuildTruckDemandDetailedSnapshot()}");
+        if (demandCount > Mathf.Max(1, maxTruckCount))
+        {
+            LogWarn($"Spawn trucks demand exceeds capacity | demandCount={demandCount} | maxTruckCount={Mathf.Max(1, maxTruckCount)} | some colors may be deferred", this);
+        }
         if (truckCount <= 0)
         {
-            LogInfo("Spawn trucks skipped: remaining demand is 0");
+            LogWarn($"Spawn trucks skipped: remaining demand is 0 | shelfSnapshot={BuildTruckDemandShelfSnapshot()}", this);
             return;
         }
 
@@ -3850,8 +3890,11 @@ public class ShelfSpawnManager : MonoBehaviour
         truckCount = Mathf.Min(truckCount, colors.Count);
         if (truckCount <= 0)
         {
+            LogWarn($"Spawn trucks skipped: BuildTruckColors returned empty | demandTrips={FormatTruckColorCountMap(totalDemand)}", this);
             return;
         }
+
+        LogInfo($"Spawn trucks color plan | count={truckCount} | colors=[{string.Join(",", colors)}]");
 
         for (var i = 0; i < truckCount; i++)
         {
@@ -3876,7 +3919,12 @@ public class ShelfSpawnManager : MonoBehaviour
             });
         }
 
-        LogInfo($"Spawn trucks finished | count={activeTrucks.Count}");
+        LogInfo($"Spawn trucks finished | count={activeTrucks.Count} | trucks=[{FormatActiveTruckColorList()}]");
+        LogInfo(
+            $"TruckQuickSummary | level={Mathf.Max(1, currentLevelIndex)}"
+            + $" | demandTrips={FormatTruckColorCountMap(totalDemand)}"
+            + $" | planned=[{string.Join(",", colors)}]"
+            + $" | active=[{FormatActiveTruckColorList()}]");
     }
 
     private List<GameManager.BoxColor> BuildTruckColors(
@@ -3920,14 +3968,21 @@ public class ShelfSpawnManager : MonoBehaviour
             {
                 supply[picked] = 1;
             }
+
+            var remainDeficit = FormatTruckColorDeficitMap(demand, supply);
+            LogInfo($"BuildTruckColors pick | index={i} | picked={picked} | demand={FormatTruckColorCountMap(demand)} | supply={FormatTruckColorCountMap(supply)} | remainDeficit={remainDeficit}");
         }
 
         return result;
     }
 
-    private Dictionary<GameManager.BoxColor, int> BuildRemainingDemandByColor()
+    private Dictionary<GameManager.BoxColor, int> BuildRemainingDemandByColor(bool logDetails = false)
     {
         var countsByColor = new Dictionary<GameManager.BoxColor, int>();
+        var scannedShelfCount = 0;
+        var totalBoxes = 0;
+        var grayBoxes = 0;
+        var missingStateBoxes = 0;
 
         for (var i = 0; i < spawnedShelves.Count; i++)
         {
@@ -3943,6 +3998,8 @@ public class ShelfSpawnManager : MonoBehaviour
                 continue;
             }
 
+            scannedShelfCount++;
+
             for (var b = 0; b < shelf.StackRoot.childCount; b++)
             {
                 var box = shelf.StackRoot.GetChild(b);
@@ -3954,12 +4011,14 @@ public class ShelfSpawnManager : MonoBehaviour
                 var state = box.GetComponent<BoxVisualState>();
                 if (state == null)
                 {
+                    missingStateBoxes++;
                     continue;
                 }
 
+                totalBoxes++;
                 if (state.IsGrayed)
                 {
-                    continue;
+                    grayBoxes++;
                 }
 
                 if (countsByColor.ContainsKey(state.OriginalColorType))
@@ -3983,7 +4042,169 @@ public class ShelfSpawnManager : MonoBehaviour
             }
         }
 
+        if (logDetails)
+        {
+            LogInfo(
+                $"TruckDemandAnalyze | shelves={scannedShelfCount}/{spawnedShelves.Count}"
+                + $" | boxes={totalBoxes}"
+                + $" | grayBoxes={grayBoxes}"
+                + $" | missingStateBoxes={missingStateBoxes}"
+                + $" | colorBoxCounts={FormatTruckColorCountMap(countsByColor)}"
+                + $" | demandTrips={FormatTruckColorCountMap(demand)}");
+        }
+
         return demand;
+    }
+
+    private static string FormatTruckColorCountMap(Dictionary<GameManager.BoxColor, int> data)
+    {
+        if (data == null || data.Count == 0)
+        {
+            return "none";
+        }
+
+        return string.Join(",", data.OrderBy(pair => pair.Key.ToString()).Select(pair => $"{pair.Key}:{pair.Value}"));
+    }
+
+    private string BuildTruckDemandShelfSnapshot()
+    {
+        var parts = new List<string>();
+        for (var i = 0; i < spawnedShelves.Count; i++)
+        {
+            var shelfGo = spawnedShelves[i];
+            if (shelfGo == null)
+            {
+                parts.Add($"#{i}:null");
+                continue;
+            }
+
+            var shelf = shelfGo.GetComponent<ShelfInteractionController>();
+            if (shelf == null || shelf.StackRoot == null)
+            {
+                parts.Add($"#{i}:{shelfGo.name}|no-stack");
+                continue;
+            }
+
+            var colorTags = new List<string>();
+            for (var b = 0; b < shelf.StackRoot.childCount; b++)
+            {
+                var box = shelf.StackRoot.GetChild(b);
+                if (box == null)
+                {
+                    colorTags.Add("null-box");
+                    continue;
+                }
+
+                var state = box.GetComponent<BoxVisualState>();
+                if (state == null)
+                {
+                    colorTags.Add("missing-state");
+                    continue;
+                }
+
+                colorTags.Add(state.IsGrayed ? $"{state.OriginalColorType}*" : state.OriginalColorType.ToString());
+            }
+
+            parts.Add($"#{i}:{shelfGo.name}|count={shelf.StackRoot.childCount}|[{string.Join(",", colorTags)}]");
+        }
+
+        return parts.Count > 0 ? string.Join(" ; ", parts) : "no-shelves";
+    }
+
+    private string BuildTruckDemandDetailedSnapshot()
+    {
+        var parts = new List<string>();
+        for (var i = 0; i < spawnedShelves.Count; i++)
+        {
+            var shelfGo = spawnedShelves[i];
+            if (shelfGo == null)
+            {
+                parts.Add($"#{i}:null");
+                continue;
+            }
+
+            var shelf = shelfGo.GetComponent<ShelfInteractionController>();
+            if (shelf == null || shelf.StackRoot == null)
+            {
+                parts.Add($"#{i}:{shelfGo.name}|no-stack");
+                continue;
+            }
+
+            var boxTags = new List<string>();
+            for (var b = 0; b < shelf.StackRoot.childCount; b++)
+            {
+                var box = shelf.StackRoot.GetChild(b);
+                if (box == null)
+                {
+                    boxTags.Add($"{b}:null-box");
+                    continue;
+                }
+
+                var state = box.GetComponent<BoxVisualState>();
+                if (state == null)
+                {
+                    boxTags.Add($"{b}:missing-state");
+                    continue;
+                }
+
+                boxTags.Add(
+                    $"{b}:origType={state.OriginalColorType}"
+                    + $"|gray={state.IsGrayed}"
+                    + $"|origColor={FormatColorForLog(state.OriginalDisplayColor)}"
+                    + $"|currentColor={FormatColorForLog(state.CurrentDisplayColor)}");
+            }
+
+            parts.Add($"#{i}:{shelfGo.name}|boxes=[{string.Join(",", boxTags)}]");
+        }
+
+        return parts.Count > 0 ? string.Join(" ; ", parts) : "no-shelves";
+    }
+
+    private string FormatActiveTruckColorList()
+    {
+        if (activeTrucks == null || activeTrucks.Count <= 0)
+        {
+            return "none";
+        }
+
+        var items = new List<string>();
+        for (var i = 0; i < activeTrucks.Count; i++)
+        {
+            var truck = activeTrucks[i];
+            if (truck == null)
+            {
+                items.Add($"#{i}:null");
+                continue;
+            }
+
+            var name = truck.truck != null ? truck.truck.name : "nullGo";
+            items.Add($"#{i}:{name}|color={truck.color}|busy={truck.busy}");
+        }
+
+        return string.Join(";", items);
+    }
+
+    private static string FormatTruckColorDeficitMap(Dictionary<GameManager.BoxColor, int> demand, Dictionary<GameManager.BoxColor, int> supply)
+    {
+        if (demand == null || demand.Count == 0)
+        {
+            return "none";
+        }
+
+        var parts = new List<string>();
+        foreach (var pair in demand.OrderBy(p => p.Key.ToString()))
+        {
+            var supplyCount = supply != null && supply.TryGetValue(pair.Key, out var s) ? s : 0;
+            var deficit = Mathf.Max(0, pair.Value - supplyCount);
+            parts.Add($"{pair.Key}:{deficit}");
+        }
+
+        return string.Join(",", parts);
+    }
+
+    private static string FormatColorForLog(Color color)
+    {
+        return $"#{ColorUtility.ToHtmlStringRGBA(color)}";
     }
 
     private Vector3 GetTruckLaneWorldPosition(Camera cameraRef, int laneIndex, int slotCount)
@@ -4029,11 +4250,6 @@ public class ShelfSpawnManager : MonoBehaviour
 
                 var state = box.GetComponent<BoxVisualState>();
                 if (state == null)
-                {
-                    continue;
-                }
-
-                if (state.IsGrayed)
                 {
                     continue;
                 }
@@ -4096,21 +4312,27 @@ public class ShelfSpawnManager : MonoBehaviour
         Dictionary<GameManager.BoxColor, int> supply,
         System.Random rng)
     {
-        var deficitCandidates = new List<GameManager.BoxColor>();
+        var deficitCandidates = new List<(GameManager.BoxColor color, int deficit, int demandCount)>();
         for (var i = 0; i < colorPool.Count; i++)
         {
             var color = colorPool[i];
             var demandCount = demand != null && demand.TryGetValue(color, out var d) ? d : 0;
             var supplyCount = supply != null && supply.TryGetValue(color, out var s) ? s : 0;
-            if (demandCount > supplyCount)
+            var deficit = demandCount - supplyCount;
+            if (deficit > 0)
             {
-                deficitCandidates.Add(color);
+                deficitCandidates.Add((color, deficit, demandCount));
             }
         }
 
         if (deficitCandidates.Count > 0)
         {
-            return deficitCandidates[rng.Next(deficitCandidates.Count)];
+            var picked = deficitCandidates
+                .OrderByDescending(item => item.deficit)
+                .ThenByDescending(item => item.demandCount)
+                .ThenBy(item => item.color.ToString())
+                .First();
+            return picked.color;
         }
 
         return colorPool[rng.Next(colorPool.Count)];
@@ -5164,7 +5386,10 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (winResultTitleTextRef != null)
         {
-            winResultTitleTextRef.text = catWinMessage;
+            var title = isFinalDesignedLevelWin
+                ? (string.IsNullOrWhiteSpace(finalDesignedLevelWinMessage) ? catWinMessage : finalDesignedLevelWinMessage)
+                : catWinMessage;
+            winResultTitleTextRef.text = title;
         }
 
         if (winResultRewardTextRef != null)
@@ -5179,6 +5404,8 @@ public class ShelfSpawnManager : MonoBehaviour
             {
                 label.text = winResultNextLevelButtonText;
             }
+
+            winResultNextLevelButtonRef.gameObject.SetActive(!isFinalDesignedLevelWin);
         }
 
         winResultPanelRoot.gameObject.SetActive(true);
@@ -5195,6 +5422,12 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void GoToNextLevelFromWinPanelByButton()
     {
+        if (isFinalDesignedLevelWin)
+        {
+            LogInfo($"Win panel next blocked: final designed level reached | level={Mathf.Max(1, currentLevelIndex)}");
+            return;
+        }
+
         Time.timeScale = 1f;
         HideWinResultPanel();
         HideDimOverlay();
@@ -7003,6 +7236,7 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
+        isFinalDesignedLevelWin = IsCurrentLevelFinalDesignedLevel();
         gameWon = true;
         var reward = GrantCoinsByWin();
         if (catIntroRoutine != null)
@@ -7032,7 +7266,7 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         Time.timeScale = 0f;
-        LogInfo("Game win triggered: cat box reached truck");
+        LogInfo($"Game win triggered: cat box reached truck | finalDesignedLevelWin={isFinalDesignedLevelWin}");
     }
 
     private List<Vector3> GenerateShelfPositions(Camera cameraRef, int shelfCount)
