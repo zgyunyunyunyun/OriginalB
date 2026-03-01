@@ -446,6 +446,7 @@ public class BoxInteractionController : MonoBehaviour
         if (!TryResolveShelfUnderPointer(out var targetShelf))
         {
             LogInteraction("TryMoveToShelfUnderPointer failed: no target shelf under pointer");
+            TryLogMoveRelationFailure("no_target_shelf_under_pointer", null, null);
             return false;
         }
 
@@ -464,30 +465,35 @@ public class BoxInteractionController : MonoBehaviour
         if (targetShelf == null || targetShelf.StackRoot == null)
         {
             LogInteraction("TryPlaceOnShelf fail: target shelf/stackRoot null");
+            TryLogMoveRelationFailure("target_shelf_or_stack_root_null", null, targetShelf);
             return false;
         }
 
         if (!TryGetCurrentShelf(out var sourceShelf) || sourceShelf == null)
         {
             LogInteraction("TryPlaceOnShelf fail: source shelf unresolved");
+            TryLogMoveRelationFailure("source_shelf_unresolved", null, targetShelf);
             return false;
         }
 
         if (sourceShelf == targetShelf || !sourceShelf.IsTopBox(transform))
         {
             LogInteraction($"TryPlaceOnShelf fail: invalid source/target | sameShelf={sourceShelf == targetShelf} | sourceIsTop={sourceShelf.IsTopBox(transform)}");
+            TryLogMoveRelationFailure($"invalid_source_target_same={sourceShelf == targetShelf}_top={sourceShelf.IsTopBox(transform)}", sourceShelf, targetShelf);
             return false;
         }
 
         if (!TryGetColorType(out var movingColor) || !targetShelf.CanAcceptColor(movingColor))
         {
             LogInteraction($"TryPlaceOnShelf fail: color/capacity check failed | colorResolved={TryGetColorType(out _)} | movingColor={movingColor}");
+            TryLogMoveRelationFailure($"color_or_capacity_check_failed_movingColor={movingColor}", sourceShelf, targetShelf);
             return false;
         }
 
         if (!targetShelf.TryGetPlacementBottomPosition(out var targetBottom))
         {
             LogInteraction("TryPlaceOnShelf fail: target bottom not resolved");
+            TryLogMoveRelationFailure("target_bottom_not_resolved", sourceShelf, targetShelf);
             return false;
         }
 
@@ -1030,6 +1036,16 @@ public class BoxInteractionController : MonoBehaviour
         }
 
         LogInfo($"box={name}#{GetInstanceID()} msg={message}");
+    }
+
+    private void TryLogMoveRelationFailure(string reason, ShelfInteractionController sourceShelf, ShelfInteractionController targetShelf)
+    {
+        if (!enableInteractionDebugLog)
+        {
+            return;
+        }
+
+        ShelfBoxRelationLogger.LogMoveValidationFailure(reason, transform, sourceShelf, targetShelf);
     }
 
     private static void LogInfo(string message)

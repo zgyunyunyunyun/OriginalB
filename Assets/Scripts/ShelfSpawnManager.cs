@@ -213,6 +213,7 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private bool enableDebugFileLog = true;
     [SerializeField] private bool enableEliminationSnapshotLog = true;
     [SerializeField, Min(0f)] private float eliminationSnapshotLogCooldown = 0.1f;
+    [SerializeField] private bool enableShelfBoxRelationLog = true;
 
     private readonly List<GameObject> spawnedShelves = new List<GameObject>();
     private IPlatformContext platformContext;
@@ -897,16 +898,9 @@ public class ShelfSpawnManager : MonoBehaviour
         RefreshColorsWithGroupConstraint();
     }
 
-    private void RefreshColorsWithGroupConstraint()
+    private void RefreshColorsWithGroupConstraint(ShelfInteractionController targetShelf = null)
     {
-        var colorPool = ResolveLimitedColorPool();
-        if (colorPool.Count <= 0)
-        {
-            return;
-        }
-
-        var rng = new System.Random(unchecked((int)DateTime.UtcNow.Ticks) ^ spawnSeed ^ Mathf.Max(1, currentColorTypeCount));
-        var boxEntries = new List<(Transform box, ShelfInteractionController shelf, int stackIndex, bool keepGray)>();
+        var boxEntries = new List<(Transform box, ShelfInteractionController shelf, int stackIndex, bool keepGray, GameManager.BoxColor color)>();
 
         for (var i = 0; i < spawnedShelves.Count; i++)
         {
@@ -931,8 +925,13 @@ public class ShelfSpawnManager : MonoBehaviour
                 }
 
                 var state = box.GetComponent<BoxVisualState>();
-                var keepGray = state != null && state.IsGrayed;
-                boxEntries.Add((box, shelf, b, keepGray));
+                if (state == null)
+                {
+                    continue;
+                }
+
+                var keepGray = state.IsGrayed;
+                boxEntries.Add((box, shelf, b, keepGray, state.OriginalColorType));
             }
         }
 
@@ -941,63 +940,106 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        if (boxEntries.Count % ColorGroupSize != 0)
-        {
-            ShowBottomBubble($"当前箱子总数为{boxEntries.Count}，不是4的倍数，无法按4连组分配颜色", colorCountWarningBubbleDuration);
-            return;
-        }
+        var seed = unchecked((int)DateTime.UtcNow.Ticks) ^ spawnSeed ^ Mathf.Max(1, currentColorTypeCount) ^ boxEntries.Count * 193;
+        var rng = new System.Random(seed);
+        var changedShelves = new HashSet<ShelfInteractionController>();
 
-        var groupCount = boxEntries.Count / ColorGroupSize;
-        var colorGroupCounts = new Dictionary<GameManager.BoxColor, int>();
-        for (var i = 0; i < colorPool.Count; i++)
+        if (targetShelf != null)
         {
-            colorGroupCounts[colorPool[i]] = 0;
-        }
-
-        var baseGroupsPerColor = groupCount / colorPool.Count;
-        var remainderGroups = groupCount % colorPool.Count;
-        for (var i = 0; i < colorPool.Count; i++)
-        {
-            colorGroupCounts[colorPool[i]] = baseGroupsPerColor;
-        }
-
-        var shuffledPool = new List<GameManager.BoxColor>(colorPool);
-        Shuffle(shuffledPool, rng);
-        for (var i = 0; i < remainderGroups; i++)
-        {
-            colorGroupCounts[shuffledPool[i]]++;
-        }
-
-        var distributedColors = new List<GameManager.BoxColor>(boxEntries.Count);
-        foreach (var color in colorPool)
-        {
-            var groupsForColor = colorGroupCounts[color];
-            for (var g = 0; g < groupsForColor; g++)
+            var targetEntries = boxEntries.Where(entry => entry.shelf == targetShelf).ToList();
+            var otherEntries = boxEntries.Where(entry => entry.shelf != targetShelf).ToList();
+            if (targetEntries.Count <= 0)
             {
-                for (var repeat = 0; repeat < ColorGroupSize; repeat++)
+                ShowBottomBubble("未找到可刷新的目标货架箱子", colorCountWarningBubbleDuration);
+                return;
+            }
+
+            if (otherEntries.Count <= 0)
+            {
+                ShowBottomBubble("当前没有其他货架可用于交换颜色", colorCountWarningBubbleDuration);
+                return;
+            }
+
+            Shuffle(targetEntries, rng);
+            Shuffle(otherEntries, rng);
+
+            var swapCount = Mathf.Min(targetEntries.Count, otherEntries.Count);
+            var changedCount = 0;
+            for (var i = 0; i < swapCount; i++)
+            {
+                var a = targetEntries[i];
+                var b = otherEntries[i];
+
+                if (a.color == b.color)
                 {
-                    distributedColors.Add(color);
+                    continue;
+                }
+
+                ApplyColorForBox(a.box, b.color, a.keepGray);
+                ApplyColorForBox(b.box, a.color, b.keepGray);
+                ApplySortingForBox(a.box, a.stackIndex);
+                ApplySortingForBox(b.box, b.stackIndex);
+
+                if (a.shelf != null)
+                {
+                    changedShelves.Add(a.shelf);
+                }
+
+                if (b.shelf != null)
+                {
+                    changedShelves.Add(b.shelf);
+                }
+
+                changedCount += 2;
+            }
+
+            if (changedCount <= 0)
+            {
+                ShowBottomBubble("本次未产生可见颜色交换，请再试一次", colorCountWarningBubbleDuration);
+            }
+
+            LogInfo($"Refresh colors by shelf swap | shelf={targetShelf.name}#{targetShelf.ShelfIndex} | targetBoxes={targetEntries.Count} | otherBoxes={otherEntries.Count} | changed={changedCount}");
+        }
+        else
+        {
+            var entries = new List<(Transform box, ShelfInteractionController shelf, int stackIndex, bool keepGray, GameManager.BoxColor color)>(boxEntries);
+            var shuffledColors = entries.Select(entry => entry.color).ToList();
+
+            var changed = false;
+            for (var attempt = 0; attempt < 6 && !changed; attempt++)
+            {
+                Shuffle(shuffledColors, rng);
+                changed = false;
+                for (var i = 0; i < entries.Count; i++)
+                {
+                    if (entries[i].color != shuffledColors[i])
+                    {
+                        changed = true;
+                        break;
+                    }
                 }
             }
-        }
 
-        Shuffle(distributedColors, rng);
-
-        var changedShelves = new HashSet<ShelfInteractionController>();
-        for (var i = 0; i < boxEntries.Count && i < distributedColors.Count; i++)
-        {
-            var entry = boxEntries[i];
-            ApplyColorForBox(entry.box, distributedColors[i], entry.keepGray);
-            ApplySortingForBox(entry.box, entry.stackIndex);
-            if (entry.shelf != null)
+            for (var i = 0; i < entries.Count; i++)
             {
-                changedShelves.Add(entry.shelf);
+                var entry = entries[i];
+                ApplyColorForBox(entry.box, shuffledColors[i], entry.keepGray);
+                ApplySortingForBox(entry.box, entry.stackIndex);
+                if (entry.shelf != null)
+                {
+                    changedShelves.Add(entry.shelf);
+                }
             }
+
+            LogInfo($"Refresh colors by global permutation | totalBoxes={entries.Count}");
         }
 
         foreach (var shelf in changedShelves)
         {
-            shelf.RefreshBoxVisualStates();
+            if (shelf != null)
+            {
+                shelf.RefreshBoxVisualStates();
+            }
         }
     }
 
@@ -2787,7 +2829,7 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         waitingRefreshShelfSelection = false;
-        RefreshColorsWithGroupConstraint();
+        RefreshColorsWithGroupConstraint(shelf);
     }
 
     private bool TryUndoLastVisualMove()
@@ -2869,6 +2911,8 @@ public class ShelfSpawnManager : MonoBehaviour
             return false;
         }
 
+        LogShelfBoxSnapshotIfEnabled($"AddEmptyShelf attempt={attempt} before");
+
         var existingBeforeAdd = new List<Vector3>(spawnedShelves.Count);
         for (var i = 0; i < spawnedShelves.Count; i++)
         {
@@ -2893,14 +2937,17 @@ public class ShelfSpawnManager : MonoBehaviour
                 LogWarn($"AddShelfPlacementResult | attempt={attempt} | success=false | reason=no_non_overlap_slot | totalShelves={spawnedShelves.Count}", this);
             }
 
+            LogShelfBoxSnapshotIfEnabled($"AddEmptyShelf attempt={attempt} failed-no-slot");
+
             return false;
         }
 
+        var shelfIndex = ResolveNextShelfIndex();
         var shelf = Instantiate(shelfPrefab, spawnPos, shelfPrefab.transform.rotation, runtimeShelfRoot);
-        shelf.name = $"Shelf_{spawnedShelves.Count + 1}";
+        shelf.name = $"Shelf_{shelfIndex + 1}";
         spawnedShelves.Add(shelf);
 
-        EnsureShelfInteractionForRuntime(shelf, ResolveNextShelfIndex());
+        EnsureShelfInteractionForRuntime(shelf, shelfIndex);
         SpawnBoxesForShelf(shelf, null, 0, 0);
 
         EnsureColumnConfigState(spawnedShelves.Count, true);
@@ -2910,6 +2957,8 @@ public class ShelfSpawnManager : MonoBehaviour
         {
             LogInfo($"AddShelfPlacementResult | attempt={attempt} | success=true | shelf={shelf.name} | totalShelves={spawnedShelves.Count}", shelf);
         }
+
+        LogShelfBoxSnapshotIfEnabled($"AddEmptyShelf attempt={attempt} success shelf={shelf.name}");
 
         return true;
     }
@@ -8167,14 +8216,26 @@ public class ShelfSpawnManager : MonoBehaviour
     {
         EnsureShelfSubRoots();
 
-        var nodeName = $"{shelfTransform.name}_Boxes";
+        var nodeName = $"{shelfTransform.name}_{shelfTransform.GetInstanceID()}_Boxes";
         var existing = runtimeBoxRoot != null ? runtimeBoxRoot.Find(nodeName) : null;
         if (existing != null)
         {
-            existing.position = shelfTransform.position;
-            existing.rotation = shelfTransform.rotation;
-            existing.localScale = Vector3.one;
+            AlignStackRootTransform(existing, shelfTransform);
             return existing;
+        }
+
+        if (runtimeBoxRoot != null)
+        {
+            for (var i = 0; i < runtimeBoxRoot.childCount; i++)
+            {
+                var child = runtimeBoxRoot.GetChild(i);
+                var rootRef = child != null ? child.GetComponent<ShelfStackRootRef>() : null;
+                if (rootRef != null && rootRef.Shelf != null && rootRef.Shelf.transform == shelfTransform)
+                {
+                    AlignStackRootTransform(child, shelfTransform);
+                    return child;
+                }
+            }
         }
 
         var node = new GameObject(nodeName).transform;
@@ -8183,10 +8244,20 @@ public class ShelfSpawnManager : MonoBehaviour
             node.SetParent(runtimeBoxRoot, false);
         }
 
-        node.position = shelfTransform.position;
-        node.rotation = shelfTransform.rotation;
-        node.localScale = Vector3.one;
+        AlignStackRootTransform(node, shelfTransform);
         return node;
+    }
+
+    private static void AlignStackRootTransform(Transform stackRoot, Transform shelfTransform)
+    {
+        if (stackRoot == null || shelfTransform == null)
+        {
+            return;
+        }
+
+        stackRoot.position = shelfTransform.position;
+        stackRoot.rotation = shelfTransform.rotation;
+        stackRoot.localScale = Vector3.one;
     }
 
     private void ApplySortingForBox(Transform boxTransform, int stackIndex)
@@ -8249,5 +8320,15 @@ public class ShelfSpawnManager : MonoBehaviour
 
         var ctx = context != null ? $" | ctx={context.name}" : string.Empty;
         GameDebugLogger.Warn(LogTag, message + ctx);
+    }
+
+    private void LogShelfBoxSnapshotIfEnabled(string reason)
+    {
+        if (!enableShelfBoxRelationLog)
+        {
+            return;
+        }
+
+        ShelfBoxRelationLogger.LogShelfSnapshot(reason, spawnedShelves);
     }
 }
