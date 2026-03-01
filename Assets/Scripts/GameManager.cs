@@ -39,6 +39,12 @@ public class GameManager : MonoBehaviour
         AllowFallbackWithoutAd
     }
 
+    public enum CatFindMode
+    {
+        ProbabilityOnElimination,
+        OnAllBoxesCleared
+    }
+
     [Serializable]
     public class BoxSlot
     {
@@ -77,7 +83,6 @@ public class GameManager : MonoBehaviour
         public int id;
         public BoxColor color;
         public bool colorVisible;
-        public bool hasCat;
     }
 
     private class ShelfData
@@ -116,6 +121,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int initialUndoToolCount = 1;
     [SerializeField] private int initialCatHintToolCount = 1;
 
+    [Header("Cat Find")]
+    [SerializeField] private CatFindMode catFindMode = CatFindMode.ProbabilityOnElimination;
+
     [Header("Shelf Integration")]
     [SerializeField] private ShelfSpawnManager shelfSpawnManager;
     [SerializeField] private bool hidePrimaryControlButtons;
@@ -140,6 +148,7 @@ public class GameManager : MonoBehaviour
     public GameState State { get; private set; } = GameState.Idle;
     public int LastHintShelfIndex { get; private set; } = -1;
     public int TotalPoints => storageService != null ? storageService.GetInt(TotalPointsKey, 0) : 0;
+    public CatFindMode CurrentCatFindMode => catFindMode;
 
     private void Awake()
     {
@@ -167,7 +176,7 @@ public class GameManager : MonoBehaviour
     {
         if (autoStartOnPlay && predefinedLevels.Count > 0)
         {
-            TryStartLevel(startLevelIndex, true, null, null);
+            TryStartLevel(startLevelIndex);
         }
 
         TryRefreshShelfSpawn();
@@ -180,7 +189,7 @@ public class GameManager : MonoBehaviour
         return Mathf.Max(0, dailyPlayLimit - used);
     }
 
-    public bool TryStartLevel(int levelIndex, bool randomCatPlacement, int? catShelfIndex, int? catDepthIndex)
+    public bool TryStartLevel(int levelIndex)
     {
         if (levelIndex < 0 || levelIndex >= predefinedLevels.Count)
         {
@@ -198,7 +207,7 @@ public class GameManager : MonoBehaviour
         moveHistory.Clear();
 
         currentLevel = BuildRuntimeLevel(predefinedLevels[levelIndex]);
-        var catPlaced = PlaceCat(currentLevel, randomCatPlacement, catShelfIndex, catDepthIndex);
+        var catPlaced = PlaceCat(currentLevel);
         if (!catPlaced)
         {
             return false;
@@ -213,6 +222,15 @@ public class GameManager : MonoBehaviour
         TryRefreshShelfSpawn();
 
         return true;
+    }
+
+    [Obsolete("TryStartLevel(levelIndex, randomCatPlacement, catShelfIndex, catDepthIndex) 已弃用，请改用 TryStartLevel(levelIndex)。")]
+    public bool TryStartLevel(int levelIndex, bool randomCatPlacement, int? catShelfIndex, int? catDepthIndex)
+    {
+        _ = randomCatPlacement;
+        _ = catShelfIndex;
+        _ = catDepthIndex;
+        return TryStartLevel(levelIndex);
     }
 
     public bool TryMoveTopBox(int fromShelfIndex, int toShelfIndex)
@@ -713,8 +731,7 @@ public class GameManager : MonoBehaviour
                 {
                     id = boxIdGenerator++,
                     color = srcBox.color,
-                    colorVisible = !definition.onlyTopVisible || srcBox.startVisible,
-                    hasCat = false
+                    colorVisible = !definition.onlyTopVisible || srcBox.startVisible
                 });
             }
 
@@ -738,39 +755,10 @@ public class GameManager : MonoBehaviour
         return runtime;
     }
 
-    private bool PlaceCat(RuntimeLevel level, bool randomCatPlacement, int? catShelfIndex, int? catDepthIndex)
+    private bool PlaceCat(RuntimeLevel level)
     {
         var allBoxes = level.shelves.SelectMany(s => s.boxes).ToList();
-        if (allBoxes.Count == 0)
-        {
-            return false;
-        }
-
-        if (randomCatPlacement)
-        {
-            var idx = UnityEngine.Random.Range(0, allBoxes.Count);
-            allBoxes[idx].hasCat = true;
-            return true;
-        }
-
-        if (!catShelfIndex.HasValue || !catDepthIndex.HasValue)
-        {
-            return false;
-        }
-
-        if (!IsValidShelfIndex(catShelfIndex.Value))
-        {
-            return false;
-        }
-
-        var shelf = level.shelves[catShelfIndex.Value];
-        if (catDepthIndex.Value < 0 || catDepthIndex.Value >= shelf.boxes.Count)
-        {
-            return false;
-        }
-
-        shelf.boxes[catDepthIndex.Value].hasCat = true;
-        return true;
+        return allBoxes.Count > 0;
     }
 
     private void ResolveEliminations()
@@ -805,8 +793,8 @@ public class GameManager : MonoBehaviour
                     var runLength = runEnd - runStart;
                     if (runLength >= 3)
                     {
-                        var removed = shelf.boxes.GetRange(runStart, runLength);
-                        if (removed.Any(b => b.hasCat))
+                        var currentBoxCount = CountTotalBoxes(level);
+                        if (ShouldFindCatForCurrentElimination(currentBoxCount, runLength))
                         {
                             level.catFound = true;
                         }
@@ -929,16 +917,63 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
+        var candidateShelves = new List<int>();
         for (var i = 0; i < currentLevel.shelves.Count; i++)
         {
-            if (currentLevel.shelves[i].boxes.Any(b => b.hasCat))
+            if (currentLevel.shelves[i].boxes.Count > 0)
             {
-                LastHintShelfIndex = i;
-                return true;
+                candidateShelves.Add(i);
             }
         }
 
-        return false;
+        if (candidateShelves.Count <= 0)
+        {
+            return false;
+        }
+
+        LastHintShelfIndex = candidateShelves[UnityEngine.Random.Range(0, candidateShelves.Count)];
+        return true;
+    }
+
+    private int CountTotalBoxes(RuntimeLevel level)
+    {
+        if (level == null || level.shelves == null)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        for (var i = 0; i < level.shelves.Count; i++)
+        {
+            var shelf = level.shelves[i];
+            if (shelf == null || shelf.boxes == null)
+            {
+                continue;
+            }
+
+            count += shelf.boxes.Count;
+        }
+
+        return Mathf.Max(0, count);
+    }
+
+    private bool ShouldFindCatForCurrentElimination(int currentBoxCount, int removedCount)
+    {
+        if (catFindMode == CatFindMode.OnAllBoxesCleared)
+        {
+            var remainingAfterRemoval = Mathf.Max(0, currentBoxCount - Mathf.Max(0, removedCount));
+            return remainingAfterRemoval <= 0;
+        }
+
+        var safeBoxCount = Mathf.Max(4, currentBoxCount);
+        var currentGroupCount = Mathf.Max(1, Mathf.CeilToInt(safeBoxCount / 4f));
+        if (currentGroupCount <= 1)
+        {
+            return true;
+        }
+
+        var findChance = 1f / currentGroupCount;
+        return UnityEngine.Random.value <= findChance;
     }
 
     private bool IsValidShelfIndex(int shelfIndex)
