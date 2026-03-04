@@ -141,6 +141,18 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField, Min(0.01f)] private float refreshShakeDuration = 0.45f;
     [SerializeField, Min(0f)] private float refreshShakeAmplitude = 0.12f;
     [SerializeField, Min(0.1f)] private float refreshShakeFrequency = 8f;
+    [SerializeField] private bool enableShareUnlockForGameplayActionButtons = true;
+    [SerializeField] private bool unlockDirectlyWhenShareUnavailable = true;
+    [SerializeField] private string shareUnlockTitle = "分享后可用";
+    [SerializeField] private string shareUnlockImageUrl = string.Empty;
+    [SerializeField] private string shareUnlockQueryTemplate = "from=action_unlock&action={0}&level={1}";
+    [SerializeField] private string shareUnlockSuccessBubbleText = "分享成功，可再次点击使用该功能";
+    [SerializeField] private string shareUnlockFailBubbleText = "分享未完成，请重试";
+    [SerializeField] private bool treatShareTimeoutAsSuccessOnWeChat = true;
+    [SerializeField, Min(0f)] private float shareReturnUnlockMinStaySeconds = 0.35f;
+    [SerializeField] private GameObject refreshActionReadyRedDot;
+    [SerializeField] private GameObject undoActionReadyRedDot;
+    [SerializeField] private GameObject addEmptyShelfActionReadyRedDot;
 
     [Header("Restart Settings UI")]
     [SerializeField] private bool showRestartSettingsButton = true;
@@ -233,6 +245,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private readonly List<GameObject> spawnedShelves = new List<GameObject>();
     private IPlatformContext platformContext;
+    private IShareService shareService;
     private Transform runtimeShelfRoot;
     private Transform runtimeBoxRoot;
     private Transform runtimeTruckRoot;
@@ -298,6 +311,16 @@ public class ShelfSpawnManager : MonoBehaviour
     private int editingShelfBoxCount;
     private int editingShelfGrayCount;
     private bool waitingRefreshShelfSelection;
+    private bool shareUnlockRequestInProgress;
+    private Coroutine shareUnlockTimeoutRoutine;
+    private GameplayActionType shareUnlockPendingActionType;
+    private bool shareUnlockWaitingAppReturn;
+    private bool shareUnlockWentBackground;
+    private float shareUnlockBackgroundEnterRealtime;
+    private readonly Queue<Action> pendingMainThreadActions = new Queue<Action>();
+    private ShareActionUnlockState refreshActionUnlockState = ShareActionUnlockState.Locked;
+    private ShareActionUnlockState undoActionUnlockState = ShareActionUnlockState.Locked;
+    private ShareActionUnlockState addEmptyShelfActionUnlockState = ShareActionUnlockState.Locked;
     private bool hidePrimaryControlButtons;
     private bool hideTestClearSaveButton;
     private bool staminaConsumedForCurrentRound;
@@ -317,6 +340,7 @@ public class ShelfSpawnManager : MonoBehaviour
     private readonly Stack<VisualMoveRecord> visualMoveHistory = new Stack<VisualMoveRecord>();
     private static readonly Vector2 LegacyModeToggleButtonPosition = new Vector2(0f, 32f);
     private static readonly Vector2 DefaultTopRightModeToggleButtonPosition = new Vector2(-120f, -96f);
+    private const float ShareUnlockResultTimeoutSeconds = 2f;
 
     private class TruckRuntimeData
     {
@@ -401,6 +425,20 @@ public class ShelfSpawnManager : MonoBehaviour
         Win
     }
 
+    private enum GameplayActionType
+    {
+        Refresh,
+        Undo,
+        AddEmptyShelf
+    }
+
+    private enum ShareActionUnlockState
+    {
+        Locked,
+        Ready,
+        Consumed
+    }
+
     public bool AutoSpawnShelves => autoSpawnShelves;
     public RuntimeMode CurrentRuntimeMode => runtimeMode;
     public bool IsLevelDesignMode => runtimeMode == RuntimeMode.LevelDesignMode;
@@ -436,6 +474,11 @@ public class ShelfSpawnManager : MonoBehaviour
             platformContext = new CommonPlatformContext();
         }
 
+        if (!ServiceLocator.TryResolve<IShareService>(out shareService))
+        {
+            shareService = new CommonShareService();
+        }
+
         ConfigureLogger();
         LogInfo("Awake start");
 
@@ -452,6 +495,7 @@ public class ShelfSpawnManager : MonoBehaviour
         EnsureModeToggleButton();
         EnsureEconomyHud();
         EnsureWinResultPanel();
+        ResetGameplayActionShareUnlockStates();
         EnsureGameplayActionButtons();
         EnsureRestartSettingsButton();
         EnsureTestClearSaveButton();
@@ -579,10 +623,95 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void Update()
     {
+        ProcessPendingMainThreadActions();
         HandleStaminaRecoveryTick();
         HandleCatOverlayDismissInput();
         HandleRefreshShelfSelectionInput();
         HandleDesignShelfConfigInput();
+    }
+
+    private void OnApplicationPause(bool pause)
+    {
+        if (!shareUnlockRequestInProgress || !shareUnlockWaitingAppReturn)
+        {
+            return;
+        }
+
+        if (pause)
+        {
+            shareUnlockWentBackground = true;
+            shareUnlockBackgroundEnterRealtime = Time.realtimeSinceStartup;
+            LogInfo($"分享流程进入后台 | action={shareUnlockPendingActionType}");
+        }
+        else
+        {
+            TryResolveShareUnlockByAppReturn("OnApplicationPause(false)");
+        }
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!shareUnlockRequestInProgress || !shareUnlockWaitingAppReturn || !hasFocus)
+        {
+            return;
+        }
+
+        TryResolveShareUnlockByAppReturn("OnApplicationFocus(true)");
+    }
+
+    private void TryResolveShareUnlockByAppReturn(string source)
+    {
+        if (!shareUnlockWentBackground)
+        {
+            return;
+        }
+
+        var staySeconds = Mathf.Max(0f, Time.realtimeSinceStartup - shareUnlockBackgroundEnterRealtime);
+        if (staySeconds < Mathf.Max(0f, shareReturnUnlockMinStaySeconds))
+        {
+            LogInfo($"分享回前台时长不足，继续等待回调 | action={shareUnlockPendingActionType} | stay={staySeconds:F2}s | source={source}");
+            return;
+        }
+
+        shareUnlockWaitingAppReturn = false;
+        shareUnlockWentBackground = false;
+        LogInfo($"分享回前台判定成功 | action={shareUnlockPendingActionType} | stay={staySeconds:F2}s | source={source}");
+        HandleShareUnlockResultOnMainThread(shareUnlockPendingActionType, new ShareResult(true, "app_return"));
+    }
+
+    private void ProcessPendingMainThreadActions()
+    {
+        while (true)
+        {
+            Action action = null;
+            lock (pendingMainThreadActions)
+            {
+                if (pendingMainThreadActions.Count > 0)
+                {
+                    action = pendingMainThreadActions.Dequeue();
+                }
+            }
+
+            if (action == null)
+            {
+                break;
+            }
+
+            action.Invoke();
+        }
+    }
+
+    private void EnqueueMainThreadAction(Action action)
+    {
+        if (action == null)
+        {
+            return;
+        }
+
+        lock (pendingMainThreadActions)
+        {
+            pendingMainThreadActions.Enqueue(action);
+        }
     }
 
     private void HandleCatOverlayDismissInput()
@@ -646,6 +775,7 @@ public class ShelfSpawnManager : MonoBehaviour
         EnsureModeToggleButton();
         EnsureEconomyHud();
         EnsureWinResultPanel();
+        ResetGameplayActionShareUnlockStates();
         EnsureGameplayActionButtons();
         EnsureRestartSettingsButton();
         EnsureTestClearSaveButton();
@@ -2945,6 +3075,21 @@ public class ShelfSpawnManager : MonoBehaviour
 
     public void RefreshShelfColorByButton()
     {
+        TryHandleGameplayActionButtonClick(GameplayActionType.Refresh, ExecuteRefreshShelfColorByButton);
+    }
+
+    public void UndoLastMoveByButton()
+    {
+        TryHandleGameplayActionButtonClick(GameplayActionType.Undo, ExecuteUndoLastMoveByButton);
+    }
+
+    public void AddEmptyShelfByButton()
+    {
+        TryHandleGameplayActionButtonClick(GameplayActionType.AddEmptyShelf, ExecuteAddEmptyShelfByButton);
+    }
+
+    private void ExecuteRefreshShelfColorByButton()
+    {
         if (!isActiveAndEnabled || IsLevelDesignMode || gameWon)
         {
             return;
@@ -2959,7 +3104,7 @@ public class ShelfSpawnManager : MonoBehaviour
         refreshShakeRoutine = StartCoroutine(PlayRefreshShakeRoutine());
     }
 
-    public void UndoLastMoveByButton()
+    private void ExecuteUndoLastMoveByButton()
     {
         if (!isActiveAndEnabled || IsLevelDesignMode || gameWon)
         {
@@ -2969,7 +3114,7 @@ public class ShelfSpawnManager : MonoBehaviour
         TryUndoLastVisualMove();
     }
 
-    public void AddEmptyShelfByButton()
+    private void ExecuteAddEmptyShelfByButton()
     {
         if (!isActiveAndEnabled || gameWon)
         {
@@ -2977,6 +3122,259 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         TryAddEmptyShelf();
+    }
+
+    private void TryHandleGameplayActionButtonClick(GameplayActionType actionType, Action executeAction)
+    {
+        if (!enableShareUnlockForGameplayActionButtons)
+        {
+            executeAction?.Invoke();
+            return;
+        }
+
+        var state = GetShareUnlockState(actionType);
+        if (state == ShareActionUnlockState.Consumed)
+        {
+            return;
+        }
+
+        if (state == ShareActionUnlockState.Ready)
+        {
+            SetShareUnlockState(actionType, ShareActionUnlockState.Consumed);
+            ApplyGameplayActionButtonsVisibility();
+            executeAction?.Invoke();
+            return;
+        }
+
+        TryUnlockGameplayActionByShare(actionType);
+    }
+
+    private void TryUnlockGameplayActionByShare(GameplayActionType actionType)
+    {
+        if (shareUnlockRequestInProgress)
+        {
+            LogInfo($"分享解锁请求已在进行中 | action={actionType} | pending={shareUnlockPendingActionType}");
+            return;
+        }
+
+        if (!CanUseShareUnlock())
+        {
+            if (unlockDirectlyWhenShareUnavailable)
+            {
+                LogInfo($"分享不可用，直接解锁 | action={actionType}");
+                SetShareUnlockState(actionType, ShareActionUnlockState.Ready);
+                if (!string.IsNullOrWhiteSpace(shareUnlockSuccessBubbleText))
+                {
+                    ShowBottomBubble(shareUnlockSuccessBubbleText, 1.2f);
+                }
+            }
+
+            return;
+        }
+
+        shareUnlockRequestInProgress = true;
+        shareUnlockPendingActionType = actionType;
+        shareUnlockWaitingAppReturn = true;
+        shareUnlockWentBackground = false;
+        shareUnlockBackgroundEnterRealtime = 0f;
+        BeginShareUnlockTimeout(actionType);
+        var sharePayload = BuildSharePayload(actionType);
+        LogInfo($"开始分享解锁 | action={actionType} | title={sharePayload.Title} | query={sharePayload.Query}");
+        shareService.Share(sharePayload, result =>
+        {
+            EnqueueMainThreadAction(() => HandleShareUnlockResultOnMainThread(actionType, result));
+        });
+    }
+
+    private void HandleShareUnlockResultOnMainThread(GameplayActionType actionType, ShareResult result)
+    {
+        CancelShareUnlockTimeout();
+        shareUnlockRequestInProgress = false;
+        shareUnlockWaitingAppReturn = false;
+        shareUnlockWentBackground = false;
+        shareUnlockBackgroundEnterRealtime = 0f;
+
+        if (result.Success)
+        {
+            SetShareUnlockState(actionType, ShareActionUnlockState.Ready);
+            if (!string.IsNullOrWhiteSpace(shareUnlockSuccessBubbleText))
+            {
+                ShowBottomBubble(shareUnlockSuccessBubbleText, 1.2f);
+            }
+
+            LogInfo($"分享解锁成功 | action={actionType}");
+            return;
+        }
+
+        var failReason = string.IsNullOrWhiteSpace(result.Error) ? "unknown" : result.Error;
+        LogWarn($"分享解锁失败 | action={actionType} | error={failReason}", this);
+        if (!string.IsNullOrWhiteSpace(shareUnlockFailBubbleText))
+        {
+            ShowBottomBubble(shareUnlockFailBubbleText, 1.2f);
+        }
+    }
+
+    private void BeginShareUnlockTimeout(GameplayActionType actionType)
+    {
+        CancelShareUnlockTimeout();
+        shareUnlockTimeoutRoutine = StartCoroutine(ShareUnlockTimeoutRoutine(actionType));
+    }
+
+    private void CancelShareUnlockTimeout()
+    {
+        if (shareUnlockTimeoutRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(shareUnlockTimeoutRoutine);
+        shareUnlockTimeoutRoutine = null;
+    }
+
+    private IEnumerator ShareUnlockTimeoutRoutine(GameplayActionType actionType)
+    {
+        yield return new WaitForSecondsRealtime(ShareUnlockResultTimeoutSeconds);
+
+        if (!shareUnlockRequestInProgress || shareUnlockPendingActionType != actionType)
+        {
+            shareUnlockTimeoutRoutine = null;
+            yield break;
+        }
+
+        shareUnlockRequestInProgress = false;
+        shareUnlockTimeoutRoutine = null;
+
+        if (ShouldTreatShareTimeoutAsSuccess())
+        {
+            SetShareUnlockState(actionType, ShareActionUnlockState.Ready);
+            if (!string.IsNullOrWhiteSpace(shareUnlockSuccessBubbleText))
+            {
+                ShowBottomBubble(shareUnlockSuccessBubbleText, 1.2f);
+            }
+
+            LogInfo($"分享未收到SDK回调，按微信兜底成功处理 | action={actionType} | wait={ShareUnlockResultTimeoutSeconds}s");
+            yield break;
+        }
+
+        LogWarn($"分享解锁回调超时 | action={actionType} | timeout={ShareUnlockResultTimeoutSeconds}s", this);
+        if (!string.IsNullOrWhiteSpace(shareUnlockFailBubbleText))
+        {
+            ShowBottomBubble(shareUnlockFailBubbleText, 1.2f);
+        }
+    }
+
+    private bool ShouldTreatShareTimeoutAsSuccess()
+    {
+        if (!treatShareTimeoutAsSuccessOnWeChat)
+        {
+            return false;
+        }
+
+        if (platformContext == null)
+        {
+            return false;
+        }
+
+        return platformContext.Current == PlatformType.WeChat;
+    }
+
+    private SharePayload BuildSharePayload(GameplayActionType actionType)
+    {
+        var title = string.IsNullOrWhiteSpace(shareUnlockTitle)
+            ? "分享后可用"
+            : shareUnlockTitle;
+        var query = string.Empty;
+        if (!string.IsNullOrWhiteSpace(shareUnlockQueryTemplate))
+        {
+            query = string.Format(
+                shareUnlockQueryTemplate,
+                actionType.ToString().ToLowerInvariant(),
+                Mathf.Max(1, currentLevelIndex));
+        }
+
+        return new SharePayload(title, shareUnlockImageUrl, query);
+    }
+
+    private bool CanUseShareUnlock()
+    {
+        if (shareService == null || platformContext == null)
+        {
+            return false;
+        }
+
+        if (!platformContext.SupportsFeature(FeatureFlag.Share))
+        {
+            return false;
+        }
+
+        return runtimeMode == RuntimeMode.GameMode;
+    }
+
+    private ShareActionUnlockState GetShareUnlockState(GameplayActionType actionType)
+    {
+        switch (actionType)
+        {
+            case GameplayActionType.Refresh:
+                return refreshActionUnlockState;
+            case GameplayActionType.Undo:
+                return undoActionUnlockState;
+            case GameplayActionType.AddEmptyShelf:
+                return addEmptyShelfActionUnlockState;
+            default:
+                return ShareActionUnlockState.Locked;
+        }
+    }
+
+    private void SetShareUnlockState(GameplayActionType actionType, ShareActionUnlockState state)
+    {
+        LogInfo($"按钮分享状态变更 | action={actionType} | state={state}");
+        switch (actionType)
+        {
+            case GameplayActionType.Refresh:
+                refreshActionUnlockState = state;
+                break;
+            case GameplayActionType.Undo:
+                undoActionUnlockState = state;
+                break;
+            case GameplayActionType.AddEmptyShelf:
+                addEmptyShelfActionUnlockState = state;
+                break;
+        }
+
+        UpdateGameplayActionRedDots();
+        ApplyGameplayActionButtonsVisibility();
+    }
+
+    private void ResetGameplayActionShareUnlockStates()
+    {
+        shareUnlockRequestInProgress = false;
+        shareUnlockPendingActionType = GameplayActionType.Refresh;
+        shareUnlockWaitingAppReturn = false;
+        shareUnlockWentBackground = false;
+        shareUnlockBackgroundEnterRealtime = 0f;
+        CancelShareUnlockTimeout();
+        refreshActionUnlockState = ShareActionUnlockState.Locked;
+        undoActionUnlockState = ShareActionUnlockState.Locked;
+        addEmptyShelfActionUnlockState = ShareActionUnlockState.Locked;
+        LogInfo("重置底部按钮分享状态为 Locked");
+        UpdateGameplayActionRedDots();
+    }
+
+    private void UpdateGameplayActionRedDots()
+    {
+        ApplyGameplayActionRedDotState(refreshActionReadyRedDot, refreshActionUnlockState == ShareActionUnlockState.Ready);
+        ApplyGameplayActionRedDotState(undoActionReadyRedDot, undoActionUnlockState == ShareActionUnlockState.Ready);
+        ApplyGameplayActionRedDotState(addEmptyShelfActionReadyRedDot, addEmptyShelfActionUnlockState == ShareActionUnlockState.Ready);
+    }
+
+    private static void ApplyGameplayActionRedDotState(GameObject redDot, bool visible)
+    {
+        if (redDot == null)
+        {
+            return;
+        }
+
+        redDot.SetActive(visible);
     }
 
     private IEnumerator PlayRefreshShakeRoutine()
@@ -6991,7 +7389,7 @@ public class ShelfSpawnManager : MonoBehaviour
             rect.anchorMax = new Vector2(0.5f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
             rect.sizeDelta = new Vector2(960f, 80f);
-            rect.anchoredPosition = new Vector2(0f, -110f);
+            rect.anchoredPosition = new Vector2(0f, -300f);
             text.fontSize = 42;
         }
         else
@@ -7602,23 +8000,34 @@ public class ShelfSpawnManager : MonoBehaviour
         refreshActionButton = EnsureGameplayActionButton(
             refreshActionButton,
             "RefreshActionButton",
-            refreshActionButtonText,
-            refreshActionButtonPosition,
             RefreshShelfColorByButton);
 
         undoActionButton = EnsureGameplayActionButton(
             undoActionButton,
             "UndoActionButton",
-            undoActionButtonText,
-            undoActionButtonPosition,
             UndoLastMoveByButton);
 
         addEmptyShelfActionButton = EnsureGameplayActionButton(
             addEmptyShelfActionButton,
             "AddEmptyShelfActionButton",
-            addEmptyShelfActionButtonText,
-            addEmptyShelfActionButtonPosition,
             AddEmptyShelfByButton);
+
+        if (refreshActionReadyRedDot == null && refreshActionButton != null)
+        {
+            refreshActionReadyRedDot = refreshActionButton.transform.Find("RedDot")?.gameObject;
+        }
+
+        if (undoActionReadyRedDot == null && undoActionButton != null)
+        {
+            undoActionReadyRedDot = undoActionButton.transform.Find("RedDot")?.gameObject;
+        }
+
+        if (addEmptyShelfActionReadyRedDot == null && addEmptyShelfActionButton != null)
+        {
+            addEmptyShelfActionReadyRedDot = addEmptyShelfActionButton.transform.Find("RedDot")?.gameObject;
+        }
+
+        UpdateGameplayActionRedDots();
 
         ApplyGameplayActionButtonsVisibility();
     }
@@ -7626,8 +8035,6 @@ public class ShelfSpawnManager : MonoBehaviour
     private Button EnsureGameplayActionButton(
         Button existing,
         string objectName,
-        string buttonText,
-        Vector2 anchoredPos,
         UnityEngine.Events.UnityAction onClick)
     {
         var button = existing;
@@ -7647,70 +8054,11 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (button == null)
         {
-            button = EnsureSimpleButton(objectName, gameplayActionButtonSize, anchoredPos, onClick);
-        }
-
-        if (button == null)
-        {
             return null;
         }
 
         button.onClick.RemoveListener(onClick);
         button.onClick.AddListener(onClick);
-
-        var canvas = EnsureUICanvas();
-        if (canvas != null && button.transform.parent != canvas.transform)
-        {
-            button.transform.SetParent(canvas.transform, false);
-        }
-
-        var rect = button.GetComponent<RectTransform>();
-        if (rect != null)
-        {
-            const float buttonAspect = 66f / 35f;
-            var canvasRect = canvas != null ? canvas.GetComponent<RectTransform>() : null;
-            var canvasWidth = canvasRect != null ? Mathf.Max(720f, canvasRect.rect.width) : 1080f;
-            var buttonHeight = Mathf.Clamp(canvasWidth * 0.058f, 48f, 72f) * 1.32f;
-            var buttonWidth = buttonHeight * buttonAspect;
-            var bottomPadding = 40f;
-            if (string.Equals(objectName, "RefreshActionButton", StringComparison.Ordinal))
-            {
-                rect.anchorMin = new Vector2(0.17f, 0f);
-                rect.anchorMax = new Vector2(0.17f, 0f);
-            }
-            else if (string.Equals(objectName, "UndoActionButton", StringComparison.Ordinal))
-            {
-                rect.anchorMin = new Vector2(0.50f, 0f);
-                rect.anchorMax = new Vector2(0.50f, 0f);
-            }
-            else if (string.Equals(objectName, "AddEmptyShelfActionButton", StringComparison.Ordinal))
-            {
-                rect.anchorMin = new Vector2(0.83f, 0f);
-                rect.anchorMax = new Vector2(0.83f, 0f);
-            }
-            else
-            {
-                rect.anchorMin = new Vector2(0.5f, 0f);
-                rect.anchorMax = new Vector2(0.5f, 0f);
-                rect.pivot = new Vector2(0.5f, 0f);
-                rect.sizeDelta = gameplayActionButtonSize;
-                rect.anchoredPosition = anchoredPos;
-            }
-
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.sizeDelta = new Vector2(buttonWidth, buttonHeight);
-            rect.anchoredPosition = new Vector2(0f, bottomPadding);
-        }
-
-        var tmpLabel = button.GetComponentInChildren<TMP_Text>(true);
-        if (tmpLabel != null)
-        {
-            tmpLabel.text = buttonText;
-            tmpLabel.alignment = TextAlignmentOptions.Center;
-            tmpLabel.enableAutoSizing = true;
-            tmpLabel.fontSizeMin = 18;
-            tmpLabel.fontSizeMax = 32;
-        }
 
         return button;
     }
@@ -7720,18 +8068,20 @@ public class ShelfSpawnManager : MonoBehaviour
         var visible = showGameplayActionButtons && runtimeMode == RuntimeMode.GameMode;
         if (refreshActionButton != null)
         {
-            refreshActionButton.gameObject.SetActive(visible);
+            refreshActionButton.gameObject.SetActive(visible && refreshActionUnlockState != ShareActionUnlockState.Consumed);
         }
 
         if (undoActionButton != null)
         {
-            undoActionButton.gameObject.SetActive(visible);
+            undoActionButton.gameObject.SetActive(visible && undoActionUnlockState != ShareActionUnlockState.Consumed);
         }
 
         if (addEmptyShelfActionButton != null)
         {
-            addEmptyShelfActionButton.gameObject.SetActive(visible);
+            addEmptyShelfActionButton.gameObject.SetActive(visible && addEmptyShelfActionUnlockState != ShareActionUnlockState.Consumed);
         }
+
+        UpdateGameplayActionRedDots();
     }
 
     private Canvas EnsureUICanvas()
