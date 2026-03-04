@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
 [DisallowMultipleComponent]
 public class ShelfSpawnManager : MonoBehaviour
@@ -75,14 +76,20 @@ public class ShelfSpawnManager : MonoBehaviour
     [Header("Cat Win Flow")]
     [SerializeField] private GameObject catPrefab;
     [SerializeField] private bool catShrinkTowardTargetBox = true;
-    [SerializeField, Min(0f)] private float catStayDuration = 0.3f;
+    [SerializeField, Min(0f)] private float catStayDuration = 1f;
     [SerializeField, Min(10f)] private float catMoveSpeed = 900f;
     [SerializeField, Min(0.01f)] private float catShrinkSpeed = 3.2f;
     [SerializeField, Range(0.01f, 1f)] private float catMinScaleFactor = 0.15f;
     [SerializeField] private string catHintMessage = "找到躲在箱子里的小猫";
     [SerializeField, Min(0f)] private float catHintDuration = 2f;
     [SerializeField] private string catWinMessage = "找到了小猫，游戏通关";
-    [SerializeField] private string finalDesignedLevelWinMessage = "您已通过最后一关\n后续更多关卡敬请期待！";
+    [SerializeField] private string finalDesignedLevelWinMessage = "已全部通关，敬请期待";
+
+    [Header("UI Font")]
+    [SerializeField] private Font defaultUiFont;
+    [SerializeField] private string defaultUiFontResourcePath = "Fonts/DENG";
+    [SerializeField] private TMP_FontAsset defaultTmpFontAsset;
+    [SerializeField] private string defaultTmpFontResourcePath = "Fonts/DENG SDF";
 
     [Header("UI")]
     [SerializeField] private bool showRegenerateButton = true;
@@ -137,6 +144,10 @@ public class ShelfSpawnManager : MonoBehaviour
 
     [Header("Restart Settings UI")]
     [SerializeField] private bool showRestartSettingsButton = true;
+    [SerializeField] private Button menuButton;
+    [SerializeField] private RectTransform restartSettingsOverlayRootRef;
+    [SerializeField] private Button restartFromSettingsButtonRef;
+    [SerializeField] private Button restartCloseButtonRef;
     [SerializeField] private string restartSettingsButtonText = "设置";
     [SerializeField] private Vector2 restartSettingsButtonSize = new Vector2(132f, 52f);
     [SerializeField] private Vector2 restartSettingsButtonPosition = new Vector2(-80f, -24f);
@@ -178,8 +189,13 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField, Min(0.1f)] private float colorCountWarningBubbleDuration = 2.2f;
     [SerializeField, Min(0)] private int winRewardCoinCount = 10;
     [SerializeField] private bool persistEconomyData = true;
+    [SerializeField] private bool preferPackagedDesignedLevelsInGameMode = true;
 
     [Header("Win Result Panel")]
+    [SerializeField] private RectTransform winResultPanelRootRef;
+    [SerializeField] private TMP_Text winResultTitleTextRefConfig;
+    [SerializeField] private TMP_Text winResultRewardTextRefConfig;
+    [SerializeField] private Button winResultNextLevelButtonRefConfig;
     [SerializeField] private Vector2 winResultPanelSize = new Vector2(760f, 460f);
     [SerializeField] private Vector2 winResultPanelPosition = Vector2.zero;
     [SerializeField] private Color winResultPanelBackgroundColor = new Color(0.40f, 0.27f, 0.12f, 1f);
@@ -226,20 +242,21 @@ public class ShelfSpawnManager : MonoBehaviour
     private Button previousLevelButton;
     private Button nextLevelButton;
     private Button saveLevelButton;
-    private Text levelIndicatorTextRef;
-    private Text coinHudTextRef;
-    private Text staminaHudTextRef;
+    private TMP_Text levelIndicatorTextRef;
+    private TMP_Text coinHudTextRef;
+    private TMP_Text staminaHudTextRef;
     private RectTransform designToolsPanelRoot;
-    private Text shelfColumnCountTextRef;
-    private Text colorTypeCountTextRef;
+    private TMP_Text shelfColumnCountTextRef;
+    private TMP_Text colorTypeCountTextRef;
     private Button refreshColorsButton;
     private Button modeToggleButton;
     private Button restartSettingsButton;
     private RectTransform restartSettingsOverlayRoot;
     private RectTransform restartSettingsPanelRoot;
     private Button restartFromSettingsButton;
+    private Button restartCloseButton;
     private RectTransform staminaInsufficientBubbleRoot;
-    private Text staminaInsufficientBubbleTextRef;
+    private TMP_Text staminaInsufficientBubbleTextRef;
     private Coroutine staminaInsufficientBubbleRoutine;
     private Button testClearSaveButton;
     private RectTransform columnControlAreaRoot;
@@ -258,25 +275,31 @@ public class ShelfSpawnManager : MonoBehaviour
     private Coroutine refreshShakeRoutine;
     private GameObject runtimeCatIntro;
     private GameObject runtimeCatIntroUi;
-    private Text catHintTextRef;
-    private Text catWinTextRef;
+    private Font cachedDefaultUiFont;
+    private TMP_FontAsset cachedDefaultTmpFont;
+    private bool defaultUiFontResolvedLogged;
+    private bool defaultTmpFontResolvedLogged;
+    private bool economyHudBindingWarned;
+    private TMP_Text catHintTextRef;
+    private TMP_Text catWinTextRef;
     private Image dimOverlayImage;
     private RectTransform winResultPanelRoot;
-    private Text winResultTitleTextRef;
-    private Text winResultRewardTextRef;
+    private TMP_Text winResultTitleTextRef;
+    private TMP_Text winResultRewardTextRef;
     private Button winResultNextLevelButtonRef;
     private RectTransform shelfConfigOverlayRoot;
     private RectTransform shelfConfigContentRoot;
-    private Text shelfConfigTitleText;
-    private Text shelfConfigBoxCountText;
-    private Text shelfConfigGrayCountText;
-    private Text shelfConfigColorConfigText;
+    private TMP_Text shelfConfigTitleText;
+    private TMP_Text shelfConfigBoxCountText;
+    private TMP_Text shelfConfigGrayCountText;
+    private TMP_Text shelfConfigColorConfigText;
     private readonly List<Button> shelfConfigColorButtons = new List<Button>();
     private ShelfInteractionController editingShelfConfig;
     private int editingShelfBoxCount;
     private int editingShelfGrayCount;
     private bool waitingRefreshShelfSelection;
     private bool hidePrimaryControlButtons;
+    private bool hideTestClearSaveButton;
     private bool staminaConsumedForCurrentRound;
     private bool applyRestartColorVariationOnNextRefresh;
     private int currentCoinCount;
@@ -287,6 +310,7 @@ public class ShelfSpawnManager : MonoBehaviour
     private float nextEliminationSnapshotLogTime;
     private const string DesignedLevelFolderName = "DesignedLevels";
     private const string DesignedLevelsFileName = "designed_levels.json";
+    private const string DesignedLevelsResourcesPath = "DesignedLevels/designed_levels";
     private const string EconomyCoinPrefKey = "ShelfSpawn.Economy.Coin";
     private const string EconomyStaminaPrefKey = "ShelfSpawn.Economy.Stamina";
     private const string EconomyStaminaRecoveryStartTicksPrefKey = "ShelfSpawn.Economy.StaminaRecoveryStartUtcTicks";
@@ -388,6 +412,12 @@ public class ShelfSpawnManager : MonoBehaviour
         ApplyPrimaryControlButtonsVisibility();
     }
 
+    public void SetTestClearSaveButtonHidden(bool hidden)
+    {
+        hideTestClearSaveButton = hidden;
+        ApplyTestClearSaveButtonVisibility();
+    }
+
     public void SetBoxGenerationManager(BoxGenerationManager manager)
     {
         boxGenerationManager = manager;
@@ -408,10 +438,6 @@ public class ShelfSpawnManager : MonoBehaviour
 
         ConfigureLogger();
         LogInfo("Awake start");
-        if (IsLevelDesignMode)
-        {
-            currentLevelIndex = ResolveNextDesignLevelIndex();
-        }
 
         NormalizeConfiguredCounts();
         EnsureShelfRoot();
@@ -438,7 +464,117 @@ public class ShelfSpawnManager : MonoBehaviour
         ApplyDesignToolsVisibility();
         UpdateModeToggleButtonLabel();
         ApplyPrimaryControlButtonsVisibility();
+        ApplyDefaultFontToAllTexts();
         LogInfo($"Awake end | shelfPrefab={(shelfPrefab != null ? shelfPrefab.name : "NULL")} | boxPrefab={(boxPrefab != null ? boxPrefab.name : "NULL")} | carPrefab={(carPrefab != null ? carPrefab.name : "NULL")} | catPrefab={(catPrefab != null ? catPrefab.name : "NULL")}");
+    }
+
+    private void Start()
+    {
+        ApplyDefaultFontToAllTexts();
+    }
+
+    private TMP_FontAsset ResolveDefaultUiFont()
+    {
+        return ResolveDefaultTmpFont();
+    }
+
+    private void ApplyDefaultFont(TMP_Text text, bool overwriteExisting = false)
+    {
+        ApplyDefaultTmpFont(text, overwriteExisting);
+    }
+
+    private TMP_FontAsset ResolveDefaultTmpFont()
+    {
+        if (cachedDefaultTmpFont != null)
+        {
+            return cachedDefaultTmpFont;
+        }
+
+        if (defaultTmpFontAsset != null)
+        {
+            cachedDefaultTmpFont = defaultTmpFontAsset;
+            return cachedDefaultTmpFont;
+        }
+
+        if (!string.IsNullOrWhiteSpace(defaultTmpFontResourcePath))
+        {
+            cachedDefaultTmpFont = Resources.Load<TMP_FontAsset>(defaultTmpFontResourcePath);
+        }
+
+        if (cachedDefaultTmpFont == null)
+        {
+            cachedDefaultTmpFont = Resources.Load<TMP_FontAsset>("Fonts/DENG SDF")
+                ?? Resources.Load<TMP_FontAsset>("Font/DENG SDF");
+        }
+
+        if (!defaultTmpFontResolvedLogged)
+        {
+            defaultTmpFontResolvedLogged = true;
+            if (cachedDefaultTmpFont != null)
+            {
+                LogInfo($"Default TMP font resolved: {cachedDefaultTmpFont.name}");
+            }
+            else
+            {
+                Debug.LogWarning("[ShelfSpawn] Default TMP font resolve failed. Please ensure Assets/Resources/Fonts/DENG SDF.asset exists.", this);
+            }
+        }
+
+        return cachedDefaultTmpFont;
+    }
+
+    private void ApplyDefaultTmpFont(TMP_Text text, bool overwriteExisting = false)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        var font = ResolveDefaultTmpFont();
+        if (font == null)
+        {
+            return;
+        }
+
+        if (overwriteExisting || text.font == null || text.font != font)
+        {
+            text.font = font;
+        }
+    }
+
+    private void ApplyLabelText(Transform root, string value)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        var tmp = root.GetComponentInChildren<TMP_Text>(true);
+        if (tmp != null)
+        {
+            ApplyDefaultTmpFont(tmp);
+            tmp.text = value;
+        }
+    }
+
+    private void ApplyDefaultFontToAllTexts()
+    {
+        var font = ResolveDefaultTmpFont();
+        if (font == null)
+        {
+            return;
+        }
+
+        var allTexts = FindObjectsOfType<TMP_Text>(true);
+        for (var i = 0; i < allTexts.Length; i++)
+        {
+            if (allTexts[i] == null)
+            {
+                continue;
+            }
+
+            allTexts[i].font = font;
+        }
     }
 
     private void Update()
@@ -720,11 +856,6 @@ public class ShelfSpawnManager : MonoBehaviour
             CloseShelfConfigOverlay();
         }
 
-        if (IsLevelDesignMode)
-        {
-            currentLevelIndex = ResolveNextDesignLevelIndex();
-        }
-
         if (refreshImmediately)
         {
             RegenerateShelves();
@@ -751,6 +882,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         SaveDesignedLevelToFile(data);
         LogInfo($"Designed level saved(file) | id={data.levelId} | shelfCount={data.shelves.Count}");
+        LoadDesignedLevelAsCurrentScene();
     }
 
     [ContextMenu("LevelDesign/Load Saved Layout")]
@@ -780,13 +912,13 @@ public class ShelfSpawnManager : MonoBehaviour
             .Where(level => level != null && ResolveDesignedLevelIndex(level) != targetIndex)
             .ToList();
 
-        var folderPath = GetDesignedLevelFolderPath();
+        var folderPath = GetDesignedLevelWritableFolderPath();
         if (!Directory.Exists(folderPath))
         {
             Directory.CreateDirectory(folderPath);
         }
 
-        File.WriteAllText(GetDesignedLevelsFilePath(), JsonUtility.ToJson(collection, true));
+        File.WriteAllText(GetDesignedLevelsWritableFilePath(), JsonUtility.ToJson(collection, true));
 
         LogInfo($"Designed level deleted | id={GetCurrentLevelId()}");
     }
@@ -943,6 +1075,51 @@ public class ShelfSpawnManager : MonoBehaviour
         var seed = unchecked((int)DateTime.UtcNow.Ticks) ^ spawnSeed ^ Mathf.Max(1, currentColorTypeCount) ^ boxEntries.Count * 193;
         var rng = new System.Random(seed);
         var changedShelves = new HashSet<ShelfInteractionController>();
+
+        if (IsLevelDesignMode && targetShelf == null)
+        {
+            if (boxEntries.Count % ColorGroupSize != 0)
+            {
+                ShowBottomBubble($"当前箱子总数为 {boxEntries.Count}，不是 {ColorGroupSize} 的倍数，无法保证可完全消除。", colorCountWarningBubbleDuration);
+                return;
+            }
+
+            var colorPool = ResolveLimitedColorPool();
+            if (colorPool == null || colorPool.Count <= 0)
+            {
+                ShowBottomBubble("当前没有可用颜色，无法刷新。", colorCountWarningBubbleDuration);
+                return;
+            }
+
+            var entries = new List<(Transform box, ShelfInteractionController shelf, int stackIndex, bool keepGray, GameManager.BoxColor color)>(boxEntries);
+            Shuffle(entries, rng);
+
+            for (var i = 0; i < entries.Count; i += ColorGroupSize)
+            {
+                var selectedColor = colorPool[rng.Next(colorPool.Count)];
+                for (var j = 0; j < ColorGroupSize; j++)
+                {
+                    var entry = entries[i + j];
+                    ApplyColorForBox(entry.box, selectedColor, entry.keepGray);
+                    ApplySortingForBox(entry.box, entry.stackIndex);
+                    if (entry.shelf != null)
+                    {
+                        changedShelves.Add(entry.shelf);
+                    }
+                }
+            }
+
+            foreach (var shelf in changedShelves)
+            {
+                if (shelf != null)
+                {
+                    shelf.RefreshBoxVisualStates();
+                }
+            }
+
+            LogInfo($"Refresh colors in design mode by group-of-4 | totalBoxes={entries.Count} | groups={entries.Count / ColorGroupSize}");
+            return;
+        }
 
         if (targetShelf != null)
         {
@@ -1200,12 +1377,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private bool ShouldUseDesignedLayoutForCurrentMode()
     {
-        if (runtimeMode == RuntimeMode.GameMode)
-        {
-            return useDesignedLevelInGameMode;
-        }
-
-        return useDesignedLevelInDesignMode;
+        return true;
     }
 
     private void FinalizeAfterShelvesSpawned()
@@ -1471,7 +1643,7 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        var folderPath = GetDesignedLevelFolderPath();
+        var folderPath = GetDesignedLevelWritableFolderPath();
         if (!Directory.Exists(folderPath))
         {
             Directory.CreateDirectory(folderPath);
@@ -1480,26 +1652,88 @@ public class ShelfSpawnManager : MonoBehaviour
         var collection = LoadDesignedLevelCollectionOrCreate();
         UpsertDesignedLevel(collection, data);
 
-        var path = GetDesignedLevelsFilePath();
+        var path = GetDesignedLevelsWritableFilePath();
         var json = JsonUtility.ToJson(collection, true);
         File.WriteAllText(path, json);
+
+#if UNITY_EDITOR
+        try
+        {
+            var editorFolder = GetDesignedLevelEditorAssetFolderPath();
+            if (!Directory.Exists(editorFolder))
+            {
+                Directory.CreateDirectory(editorFolder);
+            }
+
+            File.WriteAllText(GetDesignedLevelsEditorAssetFilePath(), json);
+            UnityEditor.AssetDatabase.Refresh();
+        }
+        catch
+        {
+        }
+#endif
     }
 
-    private string GetDesignedLevelFolderPath()
+    private string GetDesignedLevelWritableFolderPath()
+    {
+        return Path.Combine(Application.persistentDataPath, DesignedLevelFolderName);
+    }
+
+    private string GetDesignedLevelsWritableFilePath()
+    {
+        return Path.Combine(GetDesignedLevelWritableFolderPath(), DesignedLevelsFileName);
+    }
+
+    private string GetDesignedLevelEditorAssetFolderPath()
     {
         return Path.Combine(Application.dataPath, DesignedLevelFolderName);
     }
 
-    private string GetDesignedLevelsFilePath()
+    private string GetDesignedLevelsEditorAssetFilePath()
     {
-        return Path.Combine(GetDesignedLevelFolderPath(), DesignedLevelsFileName);
+        return Path.Combine(GetDesignedLevelEditorAssetFolderPath(), DesignedLevelsFileName);
     }
 
     private bool TryLoadDesignedLevelCollection(out DesignedLevelCollectionData collection)
     {
         collection = null;
-        var path = GetDesignedLevelsFilePath();
-        if (!File.Exists(path))
+
+        if (TryLoadDesignedLevelCollectionFromPath(GetDesignedLevelsWritableFilePath(), out collection))
+        {
+            return collection != null;
+        }
+
+#if UNITY_EDITOR
+        if (TryLoadDesignedLevelCollectionFromPath(GetDesignedLevelsEditorAssetFilePath(), out collection))
+        {
+            return collection != null;
+        }
+#endif
+
+        var packagedText = Resources.Load<TextAsset>(DesignedLevelsResourcesPath);
+        if (packagedText != null && !string.IsNullOrWhiteSpace(packagedText.text))
+        {
+            try
+            {
+                collection = JsonUtility.FromJson<DesignedLevelCollectionData>(packagedText.text);
+                if (collection != null && collection.levels != null)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                collection = null;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryLoadDesignedLevelCollectionFromPath(string path, out DesignedLevelCollectionData collection)
+    {
+        collection = null;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
             return false;
         }
@@ -1832,13 +2066,7 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        var label = modeToggleButton.GetComponentInChildren<Text>(true);
-        if (label == null)
-        {
-            return;
-        }
-
-        label.text = runtimeMode == RuntimeMode.GameMode ? enterDesignModeButtonText : enterGameModeButtonText;
+        ApplyLabelText(modeToggleButton.transform, runtimeMode == RuntimeMode.GameMode ? enterDesignModeButtonText : enterGameModeButtonText);
     }
 
     private void ApplyPrimaryControlButtonsVisibility()
@@ -2062,30 +2290,30 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (shelfConfigTitleText == null)
         {
-            shelfConfigTitleText = shelfConfigOverlayRoot.Find("Content/Title")?.GetComponent<Text>();
+            shelfConfigTitleText = shelfConfigOverlayRoot.Find("Content/Title")?.GetComponent<TMP_Text>();
         }
 
         if (shelfConfigBoxCountText == null)
         {
-            shelfConfigBoxCountText = shelfConfigOverlayRoot.Find("Content/BoxCountText")?.GetComponent<Text>();
+            shelfConfigBoxCountText = shelfConfigOverlayRoot.Find("Content/BoxCountText")?.GetComponent<TMP_Text>();
         }
 
         if (shelfConfigGrayCountText == null)
         {
-            shelfConfigGrayCountText = shelfConfigOverlayRoot.Find("Content/GrayCountText")?.GetComponent<Text>();
+            shelfConfigGrayCountText = shelfConfigOverlayRoot.Find("Content/GrayCountText")?.GetComponent<TMP_Text>();
         }
 
         if (shelfConfigColorConfigText == null)
         {
-            shelfConfigColorConfigText = shelfConfigOverlayRoot.Find("Content/ColorConfigText")?.GetComponent<Text>();
+            shelfConfigColorConfigText = shelfConfigOverlayRoot.Find("Content/ColorConfigText")?.GetComponent<TMP_Text>();
         }
 
         EnsureShelfConfigColorButtons();
     }
 
-    private Text CreateConfigText(RectTransform root, string name, Vector2 anchoredPos, Vector2 size, int fontSize)
+    private TMP_Text CreateConfigText(RectTransform root, string name, Vector2 anchoredPos, Vector2 size, int fontSize)
     {
-        var textObj = new GameObject(name, typeof(RectTransform), typeof(Text));
+        var textObj = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
         textObj.transform.SetParent(root, false);
         var rect = textObj.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.5f, 1f);
@@ -2094,10 +2322,10 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.anchoredPosition = anchoredPos;
         rect.sizeDelta = size;
 
-        var text = textObj.GetComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        var text = textObj.GetComponent<TMP_Text>();
+        ApplyDefaultFont(text, true);
         text.fontSize = fontSize;
-        text.alignment = TextAnchor.MiddleCenter;
+        text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
         text.raycastTarget = false;
         return text;
@@ -2174,7 +2402,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (shelfConfigColorConfigText == null)
         {
-            shelfConfigColorConfigText = shelfConfigContentRoot.Find("ColorConfigText")?.GetComponent<Text>();
+            shelfConfigColorConfigText = shelfConfigContentRoot.Find("ColorConfigText")?.GetComponent<TMP_Text>();
         }
 
         if (shelfConfigColorConfigText == null)
@@ -2453,18 +2681,12 @@ public class ShelfSpawnManager : MonoBehaviour
                 continue;
             }
 
-            var label = button.GetComponentInChildren<Text>(true);
-            if (label == null)
-            {
-                continue;
-            }
-
             var hasBox = editingShelfConfig != null
                 && editingShelfConfig.StackRoot != null
                 && i < editingShelfConfig.StackRoot.childCount;
             if (!hasBox)
             {
-                label.text = $"{i + 1}:空";
+                ApplyLabelText(button.transform, $"{i + 1}:空");
                 continue;
             }
 
@@ -2472,11 +2694,11 @@ public class ShelfSpawnManager : MonoBehaviour
             var state = box != null ? box.GetComponent<BoxVisualState>() : null;
             if (state == null)
             {
-                label.text = $"{i + 1}:空";
+                ApplyLabelText(button.transform, $"{i + 1}:空");
                 continue;
             }
 
-            label.text = $"{i + 1}:{ResolveBoxColorButtonLabel(state.OriginalColorType)}";
+            ApplyLabelText(button.transform, $"{i + 1}:{ResolveBoxColorButtonLabel(state.OriginalColorType)}");
         }
     }
 
@@ -5039,11 +5261,7 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.sizeDelta = saveLevelButtonSize;
         rect.anchoredPosition = saveLevelButtonPosition;
 
-        var label = saveLevelButton.GetComponentInChildren<Text>(true);
-        if (label != null)
-        {
-            label.text = saveLevelButtonText;
-        }
+        ApplyLabelText(saveLevelButton.transform, saveLevelButtonText);
 
         saveLevelButton.onClick.RemoveListener(SaveCurrentLevelByButton);
         saveLevelButton.onClick.AddListener(SaveCurrentLevelByButton);
@@ -5099,7 +5317,7 @@ public class ShelfSpawnManager : MonoBehaviour
             colors.selectedColor = colors.highlightedColor;
             button.colors = colors;
 
-            var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             textObj.transform.SetParent(buttonObj.transform, false);
             var textRect = textObj.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
@@ -5107,12 +5325,13 @@ public class ShelfSpawnManager : MonoBehaviour
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
 
-            var text = textObj.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+            var text = textObj.GetComponent<TextMeshProUGUI>();
+            ApplyDefaultTmpFont(text, true);
             text.fontSize = 22;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
             text.text = buttonText;
+            text.raycastTarget = false;
         }
 
         var rect = button.GetComponent<RectTransform>();
@@ -5122,18 +5341,14 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.sizeDelta = levelNavButtonSize;
         rect.anchoredPosition = anchoredPos;
 
-        var label = button.GetComponentInChildren<Text>(true);
-        if (label != null)
-        {
-            label.text = buttonText;
-        }
+        ApplyLabelText(button.transform, buttonText);
 
         button.onClick.RemoveListener(onClick);
         button.onClick.AddListener(onClick);
         return button;
     }
 
-    private Text EnsureLevelIndicatorText()
+    private TMP_Text EnsureLevelIndicatorText()
     {
         if (levelIndicatorTextRef != null)
         {
@@ -5147,16 +5362,16 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         var existing = canvas.transform.Find("LevelIndicatorText");
-        Text text;
+        TMP_Text text;
         if (existing != null)
         {
-            text = existing.GetComponent<Text>() ?? existing.gameObject.AddComponent<Text>();
+            text = existing.GetComponent<TMP_Text>() ?? existing.gameObject.AddComponent<TextMeshProUGUI>();
         }
         else
         {
-            var go = new GameObject("LevelIndicatorText", typeof(RectTransform), typeof(Text));
+            var go = new GameObject("LevelIndicatorText", typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(canvas.transform, false);
-            text = go.GetComponent<Text>();
+            text = go.GetComponent<TMP_Text>();
         }
 
         var rect = text.GetComponent<RectTransform>();
@@ -5176,9 +5391,9 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.sizeDelta = levelIndicatorSize;
         rect.anchoredPosition = levelIndicatorPosition;
 
-        text.font = text.font ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
+        ApplyDefaultFont(text);
         text.fontSize = Mathf.Max(10, levelIndicatorFontSize);
-        text.alignment = centerLevelIndicator ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft;
+        text.alignment = centerLevelIndicator ? TextAlignmentOptions.Center : TextAlignmentOptions.Left;
         text.color = Color.white;
         text.raycastTarget = false;
         levelIndicatorTextRef = text;
@@ -5208,8 +5423,11 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        coinHudTextRef = EnsureEconomyHudText(coinHudTextRef, canvas.transform, "CoinHudText", coinHudPosition);
-        staminaHudTextRef = EnsureEconomyHudText(staminaHudTextRef, canvas.transform, "StaminaHudText", staminaHudPosition, staminaHudItemSize);
+        if (!TryBindEconomyHudTextsFromResourcePanel(canvas.transform) && !economyHudBindingWarned)
+        {
+            economyHudBindingWarned = true;
+            LogWarn("未在 ResourcePanel 下找到 CoinText 或 PowerText，经济文本不会自动创建。", this);
+        }
         UpdateEconomyHud();
         BringOverlayForegroundElements();
     }
@@ -5224,16 +5442,15 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (winResultPanelRoot == null)
         {
+            winResultPanelRoot = winResultPanelRootRef;
+        }
+
+        if (winResultPanelRoot == null)
+        {
             var existing = canvas.transform.Find("WinResultPanel") as RectTransform;
             if (existing != null)
             {
                 winResultPanelRoot = existing;
-            }
-            else
-            {
-                var panelObj = new GameObject("WinResultPanel", typeof(RectTransform), typeof(Image));
-                winResultPanelRoot = panelObj.GetComponent<RectTransform>();
-                panelObj.transform.SetParent(canvas.transform, false);
             }
         }
 
@@ -5242,166 +5459,44 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        winResultPanelRoot.anchorMin = new Vector2(0.5f, 0.5f);
-        winResultPanelRoot.anchorMax = new Vector2(0.5f, 0.5f);
-        winResultPanelRoot.pivot = new Vector2(0.5f, 0.5f);
-        winResultPanelRoot.sizeDelta = winResultPanelSize;
-        winResultPanelRoot.anchoredPosition = winResultPanelPosition;
-
-        var panelBg = winResultPanelRoot.GetComponent<Image>();
-        if (panelBg == null)
+        if (winResultRewardTextRef == null)
         {
-            panelBg = winResultPanelRoot.gameObject.AddComponent<Image>();
+            winResultRewardTextRef = winResultRewardTextRefConfig;
         }
 
-        panelBg.color = winResultPanelBackgroundColor;
-        panelBg.raycastTarget = true;
+        if (winResultTitleTextRef == null)
+        {
+            winResultTitleTextRef = winResultTitleTextRefConfig;
+        }
 
-        winResultTitleTextRef = EnsureWinPanelText(
-            winResultTitleTextRef,
-            winResultPanelRoot,
-            "TitleText",
-            winResultTitleSize,
-            winResultTitlePosition,
-            winResultTitleFontSize,
-            FontStyle.Bold);
+        if (winResultNextLevelButtonRef == null)
+        {
+            winResultNextLevelButtonRef = winResultNextLevelButtonRefConfig;
+        }
 
-        winResultRewardTextRef = EnsureWinPanelText(
-            winResultRewardTextRef,
-            winResultPanelRoot,
-            "RewardText",
-            winResultRewardSize,
-            winResultRewardPosition,
-            winResultRewardFontSize,
-            FontStyle.Normal);
+        if (winResultTitleTextRef == null)
+        {
+            winResultTitleTextRef = winResultPanelRoot.Find("TitleText")?.GetComponent<TMP_Text>();
+        }
 
-        winResultNextLevelButtonRef = EnsureWinPanelButton(
-            winResultNextLevelButtonRef,
-            winResultPanelRoot,
-            "NextLevelButton",
-            winResultNextLevelButtonText,
-            winResultNextLevelButtonSize,
-            winResultNextLevelButtonPosition,
-            GoToNextLevelFromWinPanelByButton);
+        if (winResultRewardTextRef == null)
+        {
+            winResultRewardTextRef = winResultPanelRoot.Find("RewardText")?.GetComponent<TMP_Text>();
+        }
+
+        if (winResultNextLevelButtonRef == null)
+        {
+            winResultNextLevelButtonRef = winResultPanelRoot.Find("NextLevelButton")?.GetComponent<Button>();
+        }
+
+        if (winResultNextLevelButtonRef != null)
+        {
+            winResultNextLevelButtonRef.onClick.RemoveListener(GoToNextLevelFromWinPanelByButton);
+            winResultNextLevelButtonRef.onClick.AddListener(GoToNextLevelFromWinPanelByButton);
+        }
 
         HideWinResultPanel();
         BringOverlayForegroundElements();
-    }
-
-    private Text EnsureWinPanelText(
-        Text target,
-        RectTransform panelRoot,
-        string childName,
-        Vector2 size,
-        Vector2 anchoredPosition,
-        int fontSize,
-        FontStyle fontStyle)
-    {
-        var textRef = target;
-        if (textRef == null)
-        {
-            var existing = panelRoot.Find(childName);
-            if (existing != null)
-            {
-                textRef = existing.GetComponent<Text>() ?? existing.gameObject.AddComponent<Text>();
-            }
-        }
-
-        if (textRef == null)
-        {
-            var textObj = new GameObject(childName, typeof(RectTransform), typeof(Text));
-            textObj.transform.SetParent(panelRoot, false);
-            textRef = textObj.GetComponent<Text>();
-        }
-
-        var rect = textRef.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 1f);
-        rect.anchorMax = new Vector2(0.5f, 1f);
-        rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = size;
-        rect.anchoredPosition = anchoredPosition;
-
-        textRef.font = textRef.font ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
-        textRef.fontSize = Mathf.Max(12, fontSize);
-        textRef.fontStyle = fontStyle;
-        textRef.alignment = TextAnchor.MiddleCenter;
-        textRef.color = Color.white;
-        textRef.raycastTarget = false;
-        return textRef;
-    }
-
-    private Button EnsureWinPanelButton(
-        Button target,
-        RectTransform panelRoot,
-        string childName,
-        string buttonLabel,
-        Vector2 size,
-        Vector2 anchoredPosition,
-        UnityEngine.Events.UnityAction onClick)
-    {
-        var button = target;
-        if (button == null)
-        {
-            var existing = panelRoot.Find(childName);
-            if (existing != null)
-            {
-                button = existing.GetComponent<Button>() ?? existing.gameObject.AddComponent<Button>();
-                if (existing.GetComponent<Image>() == null)
-                {
-                    existing.gameObject.AddComponent<Image>();
-                }
-            }
-        }
-
-        if (button == null)
-        {
-            var buttonObj = new GameObject(childName, typeof(RectTransform), typeof(Image), typeof(Button));
-            buttonObj.transform.SetParent(panelRoot, false);
-            button = buttonObj.GetComponent<Button>();
-
-            var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
-            textObj.transform.SetParent(buttonObj.transform, false);
-            var textRect = textObj.GetComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-        }
-
-        var rect = button.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 1f);
-        rect.anchorMax = new Vector2(0.5f, 1f);
-        rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = size;
-        rect.anchoredPosition = anchoredPosition;
-
-        var image = button.GetComponent<Image>();
-        if (image != null)
-        {
-            image.color = new Color(0.2f, 0.3f, 0.46f, 0.98f);
-        }
-
-        var colors = button.colors;
-        colors.normalColor = image != null ? image.color : colors.normalColor;
-        colors.highlightedColor = new Color(0.28f, 0.4f, 0.58f, 1f);
-        colors.pressedColor = new Color(0.14f, 0.22f, 0.34f, 1f);
-        colors.selectedColor = colors.highlightedColor;
-        button.colors = colors;
-
-        var label = button.GetComponentInChildren<Text>(true);
-        if (label != null)
-        {
-            label.font = label.font ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
-            label.fontSize = 30;
-            label.alignment = TextAnchor.MiddleCenter;
-            label.color = Color.white;
-            label.text = buttonLabel;
-            label.raycastTarget = false;
-        }
-
-        button.onClick.RemoveListener(onClick);
-        button.onClick.AddListener(onClick);
-        return button;
     }
 
     private void ShowWinResultPanel(int reward)
@@ -5427,11 +5522,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (winResultNextLevelButtonRef != null)
         {
-            var label = winResultNextLevelButtonRef.GetComponentInChildren<Text>(true);
-            if (label != null)
-            {
-                label.text = winResultNextLevelButtonText;
-            }
+            ApplyLabelText(winResultNextLevelButtonRef.transform, winResultNextLevelButtonText);
 
             winResultNextLevelButtonRef.gameObject.SetActive(!isFinalDesignedLevelWin);
         }
@@ -5462,44 +5553,53 @@ public class ShelfSpawnManager : MonoBehaviour
         GoToNextLevelByButton();
     }
 
-    private Text EnsureEconomyHudText(Text target, Transform parent, string objectName, Vector2 anchoredPosition)
+    private bool TryBindEconomyHudTextsFromResourcePanel(Transform canvasRoot)
     {
-        return EnsureEconomyHudText(target, parent, objectName, anchoredPosition, economyHudItemSize);
-    }
-
-    private Text EnsureEconomyHudText(Text target, Transform parent, string objectName, Vector2 anchoredPosition, Vector2 itemSize)
-    {
-        var textRef = target;
-        if (textRef == null)
+        if (canvasRoot == null)
         {
-            var existing = parent.Find(objectName);
-            if (existing != null)
+            return false;
+        }
+
+        var resourcePanel = canvasRoot.Find("ResourcePanel")
+            ?? canvasRoot.Find("ReasourcePanel")
+            ?? FindAnchorByName(canvasRoot, "resourcepanel", "reasourcepanel");
+        if (resourcePanel == null)
+        {
+            return false;
+        }
+
+        var tmpTexts = resourcePanel.GetComponentsInChildren<TMP_Text>(true);
+        for (var i = 0; i < tmpTexts.Length; i++)
+        {
+            var text = tmpTexts[i];
+            if (text == null)
             {
-                textRef = existing.GetComponent<Text>() ?? existing.gameObject.AddComponent<Text>();
+                continue;
+            }
+
+            if (string.Equals(text.name, "CoinText", StringComparison.OrdinalIgnoreCase))
+            {
+                coinHudTextRef = text;
+            }
+            else if (string.Equals(text.name, "PowerText", StringComparison.OrdinalIgnoreCase))
+            {
+                staminaHudTextRef = text;
             }
         }
 
-        if (textRef == null)
+        if (coinHudTextRef != null)
         {
-            var go = new GameObject(objectName, typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-            textRef = go.GetComponent<Text>();
+            ApplyDefaultTmpFont(coinHudTextRef, false);
+            coinHudTextRef.gameObject.SetActive(true);
         }
 
-        var rect = textRef.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(1f, 1f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = itemSize;
-        rect.anchoredPosition = anchoredPosition;
+        if (staminaHudTextRef != null)
+        {
+            ApplyDefaultTmpFont(staminaHudTextRef, false);
+            staminaHudTextRef.gameObject.SetActive(true);
+        }
 
-        textRef.font = textRef.font ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
-        textRef.fontSize = Mathf.Max(12, economyHudFontSize);
-        textRef.alignment = TextAnchor.MiddleLeft;
-        textRef.color = Color.white;
-        textRef.raycastTarget = false;
-        textRef.gameObject.SetActive(true);
-        return textRef;
+        return coinHudTextRef != null || staminaHudTextRef != null;
     }
 
     private void InitializeEconomyState()
@@ -5571,7 +5671,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (coinHudTextRef != null)
         {
-            coinHudTextRef.text = $"{coinIconText} {Mathf.Max(0, currentCoinCount)}";
+            coinHudTextRef.text = Mathf.Max(0, currentCoinCount).ToString();
         }
 
         if (staminaHudTextRef != null)
@@ -5583,7 +5683,7 @@ public class ShelfSpawnManager : MonoBehaviour
                 suffix = $"  ({countdown})";
             }
 
-            staminaHudTextRef.text = $"{staminaIconText} {staminaValue}{suffix}";
+            staminaHudTextRef.text = $"{staminaValue}{suffix}";
         }
 
         UpdateRestartConfirmButtonVisualState();
@@ -5746,9 +5846,9 @@ public class ShelfSpawnManager : MonoBehaviour
                 image.color = new Color(0.08f, 0.08f, 0.08f, 0.88f);
                 image.raycastTarget = false;
 
-                var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
+                var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
                 textObj.transform.SetParent(bubbleObj.transform, false);
-                staminaInsufficientBubbleTextRef = textObj.GetComponent<Text>();
+                staminaInsufficientBubbleTextRef = textObj.GetComponent<TMP_Text>();
             }
         }
 
@@ -5765,7 +5865,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (staminaInsufficientBubbleTextRef == null)
         {
-            staminaInsufficientBubbleTextRef = staminaInsufficientBubbleRoot.Find("Text")?.GetComponent<Text>();
+            staminaInsufficientBubbleTextRef = staminaInsufficientBubbleRoot.Find("Text")?.GetComponent<TMP_Text>();
         }
 
         if (staminaInsufficientBubbleTextRef != null)
@@ -5776,10 +5876,9 @@ public class ShelfSpawnManager : MonoBehaviour
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
 
-            staminaInsufficientBubbleTextRef.font = staminaInsufficientBubbleTextRef.font
-                ?? (Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf"));
+            ApplyDefaultTmpFont(staminaInsufficientBubbleTextRef);
             staminaInsufficientBubbleTextRef.fontSize = Mathf.Max(18, economyHudFontSize - 2);
-            staminaInsufficientBubbleTextRef.alignment = TextAnchor.MiddleCenter;
+            staminaInsufficientBubbleTextRef.alignment = TextAlignmentOptions.Center;
             staminaInsufficientBubbleTextRef.color = Color.white;
             staminaInsufficientBubbleTextRef.raycastTarget = false;
             staminaInsufficientBubbleTextRef.text = staminaInsufficientBubbleText;
@@ -5837,23 +5936,8 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        var image = restartFromSettingsButton.GetComponent<Image>();
-        if (image == null)
-        {
-            return;
-        }
-
         var hasStamina = currentStaminaCount > 0;
-        image.color = hasStamina
-            ? new Color(0.16f, 0.2f, 0.28f, 0.92f)
-            : new Color(0.35f, 0.35f, 0.35f, 0.92f);
-
-        var colors = restartFromSettingsButton.colors;
-        colors.normalColor = image.color;
-        colors.highlightedColor = hasStamina ? new Color(0.22f, 0.28f, 0.38f, 0.96f) : image.color;
-        colors.pressedColor = hasStamina ? new Color(0.1f, 0.14f, 0.2f, 1f) : image.color;
-        colors.selectedColor = colors.highlightedColor;
-        restartFromSettingsButton.colors = colors;
+        restartFromSettingsButton.interactable = hasStamina;
     }
 
     private int GrantCoinsByWin()
@@ -5915,48 +5999,39 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void EnsureRestartSettingsButton()
     {
-        if (!showRestartSettingsButton)
+        if (restartSettingsButton == null)
+        {
+            restartSettingsButton = menuButton;
+        }
+
+        if (restartSettingsButton == null)
+        {
+            var canvas = EnsureUICanvas();
+            if (canvas != null)
+            {
+                var allButtons = canvas.GetComponentsInChildren<Button>(true);
+                for (var i = 0; i < allButtons.Length; i++)
+                {
+                    var candidate = allButtons[i];
+                    if (candidate != null && candidate.name == "MenuButton")
+                    {
+                        restartSettingsButton = candidate;
+                        break;
+                    }
+                }
+
+                var legacyButtonTransform = canvas.transform.Find("RestartSettingsButton");
+                if (legacyButtonTransform != null)
+                {
+                    Destroy(legacyButtonTransform.gameObject);
+                }
+            }
+        }
+
+        if (restartSettingsButton == null)
         {
             ApplyRestartSettingsButtonVisibility();
             return;
-        }
-
-        var canvas = EnsureUICanvas();
-        if (canvas == null)
-        {
-            return;
-        }
-
-        if (restartSettingsButton == null)
-        {
-            restartSettingsButton = EnsureSimpleButton(
-                "RestartSettingsButton",
-                restartSettingsButtonSize,
-                restartSettingsButtonPosition,
-                OpenRestartSettingsOverlay);
-        }
-
-        if (restartSettingsButton == null)
-        {
-            return;
-        }
-
-        if (restartSettingsButton.transform.parent != canvas.transform)
-        {
-            restartSettingsButton.transform.SetParent(canvas.transform, false);
-        }
-
-        var rect = restartSettingsButton.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(1f, 1f);
-        rect.anchorMax = new Vector2(1f, 1f);
-        rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = restartSettingsButtonSize;
-        rect.anchoredPosition = restartSettingsButtonPosition;
-
-        var label = restartSettingsButton.GetComponentInChildren<Text>(true);
-        if (label != null)
-        {
-            label.text = restartSettingsButtonText;
         }
 
         restartSettingsButton.onClick.RemoveListener(OpenRestartSettingsOverlay);
@@ -6019,11 +6094,7 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.sizeDelta = testClearSaveButtonSize;
         rect.anchoredPosition = testClearSaveButtonPosition;
 
-        var label = testClearSaveButton.GetComponentInChildren<Text>(true);
-        if (label != null)
-        {
-            label.text = testClearSaveButtonText;
-        }
+        ApplyLabelText(testClearSaveButton.transform, testClearSaveButtonText);
 
         testClearSaveButton.onClick.RemoveListener(ClearTestSaveDataByButton);
         testClearSaveButton.onClick.AddListener(ClearTestSaveDataByButton);
@@ -6037,7 +6108,7 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        testClearSaveButton.gameObject.SetActive(showTestClearSaveButton);
+        testClearSaveButton.gameObject.SetActive(showTestClearSaveButton && !hideTestClearSaveButton);
     }
 
     private void ClearTestSaveDataByButton()
@@ -6083,6 +6154,21 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void EnsureRestartSettingsOverlay()
     {
+        if (restartSettingsOverlayRoot == null)
+        {
+            restartSettingsOverlayRoot = restartSettingsOverlayRootRef;
+        }
+
+        if (restartFromSettingsButton == null)
+        {
+            restartFromSettingsButton = restartFromSettingsButtonRef;
+        }
+
+        if (restartCloseButton == null)
+        {
+            restartCloseButton = restartCloseButtonRef;
+        }
+
         var canvas = EnsureUICanvas();
         if (canvas == null)
         {
@@ -6096,23 +6182,6 @@ public class ShelfSpawnManager : MonoBehaviour
             {
                 restartSettingsOverlayRoot = existing;
             }
-            else
-            {
-                var overlayObj = new GameObject("RestartSettingsOverlay", typeof(RectTransform), typeof(Image), typeof(Button));
-                restartSettingsOverlayRoot = overlayObj.GetComponent<RectTransform>();
-                overlayObj.transform.SetParent(canvas.transform, false);
-
-                var panelObj = new GameObject("Panel", typeof(RectTransform), typeof(Image));
-                panelObj.transform.SetParent(restartSettingsOverlayRoot, false);
-                restartSettingsPanelRoot = panelObj.GetComponent<RectTransform>();
-                CreatePanelButton(
-                    restartSettingsPanelRoot,
-                    "RestartButton",
-                    restartConfirmButtonText,
-                    restartConfirmButtonPosition,
-                    restartConfirmButtonSize,
-                    RestartRoundFromSettingsByButton);
-            }
         }
 
         if (restartSettingsOverlayRoot == null)
@@ -6120,81 +6189,67 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        var overlayImage = restartSettingsOverlayRoot.GetComponent<Image>();
-        if (overlayImage == null)
-        {
-            overlayImage = restartSettingsOverlayRoot.gameObject.AddComponent<Image>();
-        }
-
-        overlayImage.color = restartSettingsOverlayColor;
-        overlayImage.raycastTarget = true;
-
-        var overlayButton = restartSettingsOverlayRoot.GetComponent<Button>();
-        if (overlayButton == null)
-        {
-            overlayButton = restartSettingsOverlayRoot.gameObject.AddComponent<Button>();
-        }
-
-        var overlayColors = overlayButton.colors;
-        overlayColors.normalColor = Color.white;
-        overlayColors.highlightedColor = Color.white;
-        overlayColors.pressedColor = Color.white;
-        overlayColors.selectedColor = Color.white;
-        overlayButton.colors = overlayColors;
-        overlayButton.targetGraphic = overlayImage;
-        overlayButton.onClick.RemoveListener(HideRestartSettingsOverlay);
-        overlayButton.onClick.AddListener(HideRestartSettingsOverlay);
-
-        restartSettingsOverlayRoot.anchorMin = Vector2.zero;
-        restartSettingsOverlayRoot.anchorMax = Vector2.one;
-        restartSettingsOverlayRoot.offsetMin = Vector2.zero;
-        restartSettingsOverlayRoot.offsetMax = Vector2.zero;
-
         if (restartSettingsPanelRoot == null)
         {
             restartSettingsPanelRoot = restartSettingsOverlayRoot.Find("Panel") as RectTransform;
         }
 
-        if (restartSettingsPanelRoot != null)
+        if (restartFromSettingsButton == null)
         {
-            restartSettingsPanelRoot.anchorMin = new Vector2(0.5f, 0.5f);
-            restartSettingsPanelRoot.anchorMax = new Vector2(0.5f, 0.5f);
-            restartSettingsPanelRoot.pivot = new Vector2(0.5f, 0.5f);
-            restartSettingsPanelRoot.sizeDelta = restartSettingsPanelSize;
-            restartSettingsPanelRoot.anchoredPosition = restartSettingsPanelPosition;
-
-            var panelImage = restartSettingsPanelRoot.GetComponent<Image>();
-            if (panelImage == null)
+            if (restartFromSettingsButtonRef != null)
             {
-                panelImage = restartSettingsPanelRoot.gameObject.AddComponent<Image>();
+                restartFromSettingsButton = restartFromSettingsButtonRef;
             }
-
-            panelImage.color = restartSettingsPanelColor;
-            panelImage.raycastTarget = true;
-        }
-
-        if (restartFromSettingsButton == null && restartSettingsPanelRoot != null)
-        {
-            restartFromSettingsButton = restartSettingsPanelRoot.Find("RestartButton")?.GetComponent<Button>();
+            else if (restartSettingsPanelRoot != null)
+            {
+                restartFromSettingsButton = restartSettingsPanelRoot.Find("RestartButton")?.GetComponent<Button>();
+            }
+            else
+            {
+                restartFromSettingsButton = restartSettingsOverlayRoot.GetComponentInChildren<Button>(true);
+            }
         }
 
         if (restartFromSettingsButton != null)
         {
-            var buttonRect = restartFromSettingsButton.GetComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(0.5f, 1f);
-            buttonRect.anchorMax = new Vector2(0.5f, 1f);
-            buttonRect.pivot = new Vector2(0.5f, 1f);
-            buttonRect.sizeDelta = restartConfirmButtonSize;
-            buttonRect.anchoredPosition = restartConfirmButtonPosition;
-
-            var label = restartFromSettingsButton.GetComponentInChildren<Text>(true);
-            if (label != null)
-            {
-                label.text = restartConfirmButtonText;
-            }
-
             restartFromSettingsButton.onClick.RemoveListener(RestartRoundFromSettingsByButton);
             restartFromSettingsButton.onClick.AddListener(RestartRoundFromSettingsByButton);
+        }
+
+        if (restartCloseButton == null)
+        {
+            if (restartCloseButtonRef != null)
+            {
+                restartCloseButton = restartCloseButtonRef;
+            }
+            else if (restartSettingsPanelRoot != null)
+            {
+                restartCloseButton = restartSettingsPanelRoot.Find("CloseButton")?.GetComponent<Button>();
+            }
+            else
+            {
+                var allButtons = restartSettingsOverlayRoot.GetComponentsInChildren<Button>(true);
+                for (var i = 0; i < allButtons.Length; i++)
+                {
+                    var candidate = allButtons[i];
+                    if (candidate == null || candidate == restartFromSettingsButton)
+                    {
+                        continue;
+                    }
+
+                    if (candidate.name == "CloseButton")
+                    {
+                        restartCloseButton = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (restartCloseButton != null)
+        {
+            restartCloseButton.onClick.RemoveListener(HideRestartSettingsOverlay);
+            restartCloseButton.onClick.AddListener(HideRestartSettingsOverlay);
         }
 
         UpdateRestartConfirmButtonVisualState();
@@ -6265,12 +6320,12 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (shelfColumnCountTextRef == null)
         {
-            shelfColumnCountTextRef = designToolsPanelRoot.Find("ShelfColumnText")?.GetComponent<Text>();
+            shelfColumnCountTextRef = designToolsPanelRoot.Find("ShelfColumnText")?.GetComponent<TMP_Text>();
         }
 
         if (colorTypeCountTextRef == null)
         {
-            colorTypeCountTextRef = designToolsPanelRoot.Find("ColorTypeText")?.GetComponent<Text>();
+            colorTypeCountTextRef = designToolsPanelRoot.Find("ColorTypeText")?.GetComponent<TMP_Text>();
         }
 
         if (refreshColorsButton == null)
@@ -6280,11 +6335,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (refreshColorsButton != null)
         {
-            var label = refreshColorsButton.GetComponentInChildren<Text>(true);
-            if (label != null)
-            {
-                label.text = refreshColorsButtonText;
-            }
+            ApplyLabelText(refreshColorsButton.transform, refreshColorsButtonText);
 
             refreshColorsButton.onClick.RemoveListener(RefreshCurrentBoxesColors);
             refreshColorsButton.onClick.AddListener(RefreshCurrentBoxesColors);
@@ -6405,7 +6456,7 @@ public class ShelfSpawnManager : MonoBehaviour
             columnRoot.sizeDelta = new Vector2(160f, 180f);
             columnRoot.anchoredPosition = Vector2.zero;
 
-            var labelObj = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            var labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
             labelObj.transform.SetParent(columnRoot, false);
             var labelRect = labelObj.GetComponent<RectTransform>();
             labelRect.anchorMin = new Vector2(0.5f, 0f);
@@ -6414,10 +6465,10 @@ public class ShelfSpawnManager : MonoBehaviour
             labelRect.sizeDelta = new Vector2(152f, 56f);
             labelRect.anchoredPosition = new Vector2(0f, 126f);
 
-            var labelText = labelObj.GetComponent<Text>();
-            labelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+            var labelText = labelObj.GetComponent<TMP_Text>();
+            ApplyDefaultFont(labelText, true);
             labelText.fontSize = 20;
-            labelText.alignment = TextAnchor.MiddleCenter;
+            labelText.alignment = TextAlignmentOptions.Center;
             labelText.color = Color.white;
             labelText.raycastTarget = false;
             var offsetValue = c < columnVerticalOffsets.Count ? columnVerticalOffsets[c] : 0f;
@@ -6454,7 +6505,7 @@ public class ShelfSpawnManager : MonoBehaviour
         colors.selectedColor = colors.highlightedColor;
         button.colors = colors;
 
-        var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
+        var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         textObj.transform.SetParent(buttonObj.transform, false);
         var textRect = textObj.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
@@ -6462,12 +6513,13 @@ public class ShelfSpawnManager : MonoBehaviour
         textRect.offsetMin = Vector2.zero;
         textRect.offsetMax = Vector2.zero;
 
-        var text = textObj.GetComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        var text = textObj.GetComponent<TextMeshProUGUI>();
+        ApplyDefaultTmpFont(text, true);
         text.fontSize = 18;
-        text.alignment = TextAnchor.MiddleCenter;
+        text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
         text.text = label;
+        text.raycastTarget = false;
 
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(onClick);
@@ -6604,7 +6656,7 @@ public class ShelfSpawnManager : MonoBehaviour
             colors.selectedColor = colors.highlightedColor;
             button.colors = colors;
 
-            var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             textObj.transform.SetParent(buttonObj.transform, false);
             var textRect = textObj.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
@@ -6612,11 +6664,12 @@ public class ShelfSpawnManager : MonoBehaviour
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
 
-            var text = textObj.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+            var text = textObj.GetComponent<TextMeshProUGUI>();
+            ApplyDefaultTmpFont(text, true);
             text.fontSize = 22;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
+            text.raycastTarget = false;
         }
 
         var rect = button.GetComponent<RectTransform>();
@@ -6627,9 +6680,9 @@ public class ShelfSpawnManager : MonoBehaviour
         return button;
     }
 
-    private Text CreatePanelText(RectTransform root, string name, Vector2 anchoredPos, Vector2 size)
+    private TMP_Text CreatePanelText(RectTransform root, string name, Vector2 anchoredPos, Vector2 size)
     {
-        var textObj = new GameObject(name, typeof(RectTransform), typeof(Text));
+        var textObj = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
         textObj.transform.SetParent(root, false);
         var rect = textObj.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.5f, 1f);
@@ -6638,10 +6691,10 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.anchoredPosition = anchoredPos;
         rect.sizeDelta = size;
 
-        var text = textObj.GetComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        var text = textObj.GetComponent<TMP_Text>();
+        ApplyDefaultFont(text, true);
         text.fontSize = 24;
-        text.alignment = TextAnchor.MiddleCenter;
+        text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
         text.raycastTarget = false;
         return text;
@@ -6669,7 +6722,7 @@ public class ShelfSpawnManager : MonoBehaviour
         colors.selectedColor = colors.highlightedColor;
         button.colors = colors;
 
-        var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
+        var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         textObj.transform.SetParent(buttonObj.transform, false);
         var textRect = textObj.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
@@ -6677,12 +6730,13 @@ public class ShelfSpawnManager : MonoBehaviour
         textRect.offsetMin = Vector2.zero;
         textRect.offsetMax = Vector2.zero;
 
-        var text = textObj.GetComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+        var text = textObj.GetComponent<TextMeshProUGUI>();
+        ApplyDefaultTmpFont(text, true);
         text.fontSize = 20;
-        text.alignment = TextAnchor.MiddleCenter;
+        text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
         text.text = labelText;
+        text.raycastTarget = false;
 
         button.onClick.RemoveListener(onClick);
         button.onClick.AddListener(onClick);
@@ -6856,8 +6910,6 @@ public class ShelfSpawnManager : MonoBehaviour
         if (hintText != null)
         {
             hintText.text = catHintMessage;
-            //设置提示文案的位置
-            hintText.rectTransform.anchoredPosition = new Vector2(0f, -400f);
             hintText.gameObject.SetActive(true);
         }
 
@@ -6896,7 +6948,7 @@ public class ShelfSpawnManager : MonoBehaviour
         return false;
     }
 
-    private Text EnsureOverlayText(CatUiType type)
+    private TMP_Text EnsureOverlayText(CatUiType type)
     {
         if (type == CatUiType.Hint && catHintTextRef != null)
         {
@@ -6916,20 +6968,20 @@ public class ShelfSpawnManager : MonoBehaviour
 
         var objectName = type == CatUiType.Hint ? "CatHintText" : "CatWinText";
         var existing = canvas.transform.Find(objectName);
-        Text text;
+        TMP_Text text;
         if (existing != null)
         {
-            text = existing.GetComponent<Text>();
+            text = existing.GetComponent<TMP_Text>();
             if (text == null)
             {
-                text = existing.gameObject.AddComponent<Text>();
+                text = existing.gameObject.AddComponent<TextMeshProUGUI>();
             }
         }
         else
         {
-            var go = new GameObject(objectName, typeof(RectTransform), typeof(Text));
+            var go = new GameObject(objectName, typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(canvas.transform, false);
-            text = go.GetComponent<Text>();
+            text = go.GetComponent<TMP_Text>();
         }
 
         var rect = text.GetComponent<RectTransform>();
@@ -6950,22 +7002,13 @@ public class ShelfSpawnManager : MonoBehaviour
             rect.sizeDelta = new Vector2(1100f, 120f);
             rect.anchoredPosition = Vector2.zero;
             text.fontSize = 52;
-            text.fontStyle = FontStyle.Bold;
+            text.fontStyle = FontStyles.Bold;
         }
 
-        text.alignment = TextAnchor.MiddleCenter;
+        text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
         text.raycastTarget = false;
-        if (text.font == null)
-        {
-            var builtinFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (builtinFont == null)
-            {
-                builtinFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            }
-
-            text.font = builtinFont;
-        }
+        ApplyDefaultFont(text);
 
         text.gameObject.SetActive(false);
 
@@ -7491,7 +7534,7 @@ public class ShelfSpawnManager : MonoBehaviour
             colors.selectedColor = colors.highlightedColor;
             regenerateButton.colors = colors;
 
-            var textObj = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            var textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             textObj.transform.SetParent(buttonObj.transform, false);
             var textRect = textObj.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
@@ -7499,18 +7542,13 @@ public class ShelfSpawnManager : MonoBehaviour
             textRect.offsetMin = Vector2.zero;
             textRect.offsetMax = Vector2.zero;
 
-            var text = textObj.GetComponent<Text>();
+            var text = textObj.GetComponent<TextMeshProUGUI>();
             text.text = regenerateButtonText;
-            var builtinFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (builtinFont == null)
-            {
-                builtinFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            }
-
-            text.font = builtinFont;
+            ApplyDefaultTmpFont(text, true);
             text.fontSize = 24;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
+            text.raycastTarget = false;
         }
 
         ApplyRegenerateButtonVisibility();
@@ -7521,11 +7559,7 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.sizeDelta = regenerateButtonSize;
         rect.anchoredPosition = regenerateButtonPosition;
 
-        var label = regenerateButton.GetComponentInChildren<Text>(true);
-        if (label != null)
-        {
-            label.text = regenerateButtonText;
-        }
+        ApplyLabelText(regenerateButton.transform, regenerateButtonText);
 
         regenerateButton.onClick.RemoveListener(RestartRoundByButton);
         regenerateButton.onClick.RemoveListener(RegenerateShelves);
@@ -7597,7 +7631,6 @@ public class ShelfSpawnManager : MonoBehaviour
         UnityEngine.Events.UnityAction onClick)
     {
         var button = existing;
-        var createdByManager = false;
 
         if (button == null)
         {
@@ -7615,7 +7648,6 @@ public class ShelfSpawnManager : MonoBehaviour
         if (button == null)
         {
             button = EnsureSimpleButton(objectName, gameplayActionButtonSize, anchoredPos, onClick);
-            createdByManager = true;
         }
 
         if (button == null)
@@ -7626,20 +7658,58 @@ public class ShelfSpawnManager : MonoBehaviour
         button.onClick.RemoveListener(onClick);
         button.onClick.AddListener(onClick);
 
-        if (createdByManager)
+        var canvas = EnsureUICanvas();
+        if (canvas != null && button.transform.parent != canvas.transform)
         {
-            var rect = button.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.sizeDelta = gameplayActionButtonSize;
-            rect.anchoredPosition = anchoredPos;
+            button.transform.SetParent(canvas.transform, false);
+        }
 
-            var label = button.GetComponentInChildren<Text>(true);
-            if (label != null)
+        var rect = button.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            const float buttonAspect = 66f / 35f;
+            var canvasRect = canvas != null ? canvas.GetComponent<RectTransform>() : null;
+            var canvasWidth = canvasRect != null ? Mathf.Max(720f, canvasRect.rect.width) : 1080f;
+            var buttonHeight = Mathf.Clamp(canvasWidth * 0.058f, 48f, 72f) * 1.32f;
+            var buttonWidth = buttonHeight * buttonAspect;
+            var bottomPadding = 40f;
+            if (string.Equals(objectName, "RefreshActionButton", StringComparison.Ordinal))
             {
-                label.text = buttonText;
+                rect.anchorMin = new Vector2(0.17f, 0f);
+                rect.anchorMax = new Vector2(0.17f, 0f);
             }
+            else if (string.Equals(objectName, "UndoActionButton", StringComparison.Ordinal))
+            {
+                rect.anchorMin = new Vector2(0.50f, 0f);
+                rect.anchorMax = new Vector2(0.50f, 0f);
+            }
+            else if (string.Equals(objectName, "AddEmptyShelfActionButton", StringComparison.Ordinal))
+            {
+                rect.anchorMin = new Vector2(0.83f, 0f);
+                rect.anchorMax = new Vector2(0.83f, 0f);
+            }
+            else
+            {
+                rect.anchorMin = new Vector2(0.5f, 0f);
+                rect.anchorMax = new Vector2(0.5f, 0f);
+                rect.pivot = new Vector2(0.5f, 0f);
+                rect.sizeDelta = gameplayActionButtonSize;
+                rect.anchoredPosition = anchoredPos;
+            }
+
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = new Vector2(buttonWidth, buttonHeight);
+            rect.anchoredPosition = new Vector2(0f, bottomPadding);
+        }
+
+        var tmpLabel = button.GetComponentInChildren<TMP_Text>(true);
+        if (tmpLabel != null)
+        {
+            tmpLabel.text = buttonText;
+            tmpLabel.alignment = TextAlignmentOptions.Center;
+            tmpLabel.enableAutoSizing = true;
+            tmpLabel.fontSizeMin = 18;
+            tmpLabel.fontSizeMax = 32;
         }
 
         return button;
@@ -8066,7 +8136,7 @@ public class ShelfSpawnManager : MonoBehaviour
         {
             bottom = bottomAnchor.position;
             top = topAnchor.position;
-            LogInfo($"Use shelf anchors from StackAnchorPoints: {shelfTransform.name}", shelfTransform.gameObject);
+            LogInfo($"Use shelf anchors: {shelfTransform.name}", shelfTransform.gameObject);
             return true;
         }
 

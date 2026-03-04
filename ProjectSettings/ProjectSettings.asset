@@ -701,7 +701,7 @@ PlayerSettings:
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
   scriptingDefineSymbols:
-    WebGL: PLATFORM_DOUYIN
+    WebGL: PLATFORM_WECHAT
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}

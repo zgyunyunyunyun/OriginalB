@@ -10,7 +10,7 @@ namespace OriginalB.Platform.Bootstrap
 {
     internal static class ChannelSdkSwitch
     {
-#if ENABLE_CHANNEL_SDK
+#if PLATFORM_WECHAT || PLATFORM_DOUYIN || ENABLE_CHANNEL_SDK
         public const bool Enabled = true;
 #else
         public const bool Enabled = false;
@@ -107,10 +107,10 @@ namespace OriginalB.Platform.Bootstrap
             ServiceLocator.Register<IInputService>(new WeChatInputService());
             ServiceLocator.Register<ILogService>(new WeChatLogService());
             ServiceLocator.Register<IStorageService>(new WeChatStorageService());
-        ServiceLocator.Register<IAuthService>(new WeChatAuthService());
-        ServiceLocator.Register<IAdService>(new WeChatAdService());
-        ServiceLocator.Register<IShareService>(new WeChatShareService());
-        ServiceLocator.Register<IAnalyticsService>(new WeChatAnalyticsService());
+            ServiceLocator.Register<IAuthService>(new WeChatAuthService());
+            ServiceLocator.Register<IAdService>(new WeChatAdService());
+            ServiceLocator.Register<IShareService>(new WeChatShareService());
+            ServiceLocator.Register<IAnalyticsService>(new WeChatAnalyticsService());
 #elif PLATFORM_DOUYIN
             ServiceLocator.Register<IPlatformContext>(new DouyinPlatformContext());
             ServiceLocator.Register<IInputService>(new DouyinInputService());

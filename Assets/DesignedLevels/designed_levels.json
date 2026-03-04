@@ -117,10 +117,10 @@
             "levelId": "level_002",
             "shelfColumnCount": 4,
             "columnShelfCounts": [
-                2,
-                3,
-                3,
-                2
+                5,
+                5,
+                5,
+                5
             ],
             "columnVerticalOffsets": [
                 0.0,
@@ -143,7 +143,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -181,15 +181,15 @@
                     },
                     "boxes": [
                         {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
                             "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -208,11 +208,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -235,11 +235,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -258,15 +258,15 @@
                     },
                     "boxes": [
                         {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
                             "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -285,15 +285,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         },
                         {
                             "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -312,11 +312,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -335,7 +335,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -354,7 +354,237 @@
                     },
                     "boxes": [
                         {
+                            "color": 3,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -1.875,
+                        "y": 0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 3,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -1.875,
+                        "y": -0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 1,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -0.6249999403953552,
+                        "y": 1.3047268390655518,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -0.6249999403953552,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
                             "color": 0,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -0.6249999403953552,
+                        "y": -1.3047268390655518,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": 0.6249998807907105,
+                        "y": 1.3047268390655518,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": 0.6249998807907105,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": 0.6249998807907105,
+                        "y": -1.3047268390655518,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": 1.874999761581421,
+                        "y": 0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 3,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": 1.874999761581421,
+                        "y": -0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -393,15 +623,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -424,11 +654,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -447,7 +677,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": true
                         },
                         {
@@ -455,7 +685,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -474,11 +704,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": true
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -501,15 +731,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": true
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -528,7 +758,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": true
                         },
                         {
@@ -559,11 +789,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -582,15 +812,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
                             "grayed": false
                         },
                         {
                             "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -629,11 +859,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -656,11 +886,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -683,15 +913,15 @@
                     },
                     "boxes": [
                         {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
                             "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -714,15 +944,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
                             "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -745,7 +975,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -768,7 +998,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -780,7 +1010,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -826,11 +1056,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -853,19 +1083,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         },
                         {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -884,15 +1114,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         },
                         {
                             "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -911,7 +1141,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -919,7 +1149,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -970,11 +1200,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": true
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": true
                         },
                         {
@@ -982,7 +1212,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -1005,15 +1235,15 @@
                             "grayed": true
                         },
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": true
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1032,11 +1262,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": true
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": true
                         },
                         {
@@ -1044,7 +1274,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -1063,11 +1293,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -1086,11 +1316,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -1109,11 +1339,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -1121,7 +1347,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -1140,19 +1370,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": true
-                        },
-                        {
                             "color": 0,
                             "grayed": true
                         },
                         {
                             "color": 2,
-                            "grayed": false
+                            "grayed": true
                         },
                         {
                             "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1171,11 +1401,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": true
                         },
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": true
                         },
                         {
@@ -1183,7 +1413,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1206,15 +1436,15 @@
                             "grayed": true
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": true
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1251,15 +1481,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         },
                         {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -1286,7 +1516,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1305,15 +1535,15 @@
                     },
                     "boxes": [
                         {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
                             "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -1332,15 +1562,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
                             "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -1367,11 +1597,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1390,6 +1620,10 @@
                     },
                     "boxes": [
                         {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
                             "color": 0,
                             "grayed": false
                         },
@@ -1398,11 +1632,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -1425,7 +1655,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -1433,7 +1663,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -1456,11 +1686,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -1483,7 +1713,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -1510,7 +1740,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -1518,7 +1748,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -1537,15 +1767,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -1568,11 +1798,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -1609,11 +1839,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": false
                         },
                         {
@@ -1636,7 +1866,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -1644,7 +1874,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -1667,11 +1897,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -1698,11 +1928,11 @@
                             "grayed": true
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1721,19 +1951,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": true
-                        },
-                        {
-                            "color": 2,
-                            "grayed": true
-                        },
-                        {
                             "color": 3,
+                            "grayed": true
+                        },
+                        {
+                            "color": 2,
+                            "grayed": true
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -1752,19 +1982,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": true
-                        },
-                        {
-                            "color": 1,
-                            "grayed": true
-                        },
-                        {
-                            "color": 1,
-                            "grayed": false
                         },
                         {
                             "color": 2,
+                            "grayed": true
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -1783,7 +2013,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": true
                         },
                         {
@@ -1795,7 +2025,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -1814,15 +2044,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
                             "color": 2,
                             "grayed": false
                         },
                         {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1879,11 +2109,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -1906,7 +2136,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -1914,7 +2144,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1933,15 +2163,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         },
                         {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -1960,7 +2190,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -1987,15 +2217,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
                             "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -2045,11 +2275,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -2068,15 +2298,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
                             "color": 3,
                             "grayed": false
                         },
                         {
                             "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -2085,60 +2315,6 @@
                     "position": {
                         "x": -0.3750000596046448,
                         "y": 1.957090139389038,
-                        "z": 0.0
-                    },
-                    "rotation": {
-                        "x": 0.0,
-                        "y": 0.0,
-                        "z": 0.0,
-                        "w": 1.0
-                    },
-                    "boxes": [
-                        {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
-                            "grayed": false
-                        }
-                    ]
-                },
-                {
-                    "position": {
-                        "x": -0.3750000596046448,
-                        "y": 0.6523634195327759,
-                        "z": 0.0
-                    },
-                    "rotation": {
-                        "x": 0.0,
-                        "y": 0.0,
-                        "z": 0.0,
-                        "w": 1.0
-                    },
-                    "boxes": [
-                        {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        }
-                    ]
-                },
-                {
-                    "position": {
-                        "x": -0.3750000596046448,
-                        "y": -0.6523634195327759,
                         "z": 0.0
                     },
                     "rotation": {
@@ -2165,6 +2341,60 @@
                 {
                     "position": {
                         "x": -0.3750000596046448,
+                        "y": 0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -0.3750000596046448,
+                        "y": -0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -0.3750000596046448,
                         "y": -1.9570902585983277,
                         "z": 0.0
                     },
@@ -2176,15 +2406,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
                             "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -2207,11 +2437,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -2234,11 +2464,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -2257,15 +2487,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -2284,15 +2514,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -2311,15 +2541,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
                             "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -2338,7 +2568,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -2346,7 +2576,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -2365,15 +2595,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
                             "color": 3,
                             "grayed": false
                         },
                         {
                             "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -2392,15 +2622,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -2419,15 +2649,15 @@
                     },
                     "boxes": [
                         {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
                             "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -2454,7 +2684,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -2473,11 +2703,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -2500,15 +2730,15 @@
                     },
                     "boxes": [
                         {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
                             "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -2521,10 +2751,10 @@
             "levelId": "level_009",
             "shelfColumnCount": 4,
             "columnShelfCounts": [
-                1,
-                2,
-                2,
-                1
+                3,
+                3,
+                3,
+                3
             ],
             "columnVerticalOffsets": [
                 0.0,
@@ -2547,7 +2777,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
@@ -2570,19 +2800,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
-                            "grayed": true
-                        },
-                        {
                             "color": 1,
                             "grayed": true
                         },
                         {
-                            "color": 2,
-                            "grayed": false
+                            "color": 0,
+                            "grayed": true
                         },
                         {
                             "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -2601,11 +2831,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": true
                         },
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -2613,7 +2843,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -2632,7 +2862,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": true
                         },
                         {
@@ -2640,7 +2870,7 @@
                             "grayed": true
                         },
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -2663,7 +2893,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": true
                         },
                         {
@@ -2671,7 +2901,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -2694,11 +2924,181 @@
                     },
                     "boxes": [
                         {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -1.875,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
                             "color": 3,
                             "grayed": false
                         },
                         {
+                            "color": 3,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -0.6249999403953552,
+                        "y": 0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
                             "color": 2,
+                            "grayed": true
+                        },
+                        {
+                            "color": 2,
+                            "grayed": true
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": -0.6249999403953552,
+                        "y": -0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 1,
+                            "grayed": true
+                        },
+                        {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": 0.6249998807907105,
+                        "y": 0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 2,
+                            "grayed": true
+                        },
+                        {
+                            "color": 0,
+                            "grayed": true
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": 0.6249998807907105,
+                        "y": -0.6523634195327759,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 0,
+                            "grayed": true
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        }
+                    ]
+                },
+                {
+                    "position": {
+                        "x": 1.874999761581421,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "rotation": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0,
+                        "w": 1.0
+                    },
+                    "boxes": [
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -2737,15 +3137,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": true
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -2768,7 +3168,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         },
                         {
@@ -2776,11 +3180,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -2799,15 +3199,15 @@
                     },
                     "boxes": [
                         {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
                             "color": 2,
                             "grayed": false
                         },
                         {
                             "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -2838,11 +3238,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -2861,7 +3261,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": true
                         },
                         {
@@ -2869,11 +3269,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -2892,11 +3292,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -2905,6 +3301,10 @@
                         },
                         {
                             "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -2923,19 +3323,19 @@
                     },
                     "boxes": [
                         {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
                             "color": 0,
                             "grayed": false
                         },
                         {
                             "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -2976,7 +3376,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -2999,7 +3399,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -3011,7 +3411,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -3030,15 +3430,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": true
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -3061,7 +3461,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -3069,11 +3473,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -3112,15 +3512,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": true
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -3143,7 +3543,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": true
                         },
                         {
@@ -3151,11 +3551,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -3174,7 +3574,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": true
                         },
                         {
@@ -3182,11 +3582,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -3205,19 +3605,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": true
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -3236,19 +3636,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": true
                         },
                         {
-                            "color": 3,
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
                             "grayed": false
                         },
                         {
                             "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -3271,15 +3671,15 @@
                             "grayed": true
                         },
                         {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
                             "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -3312,11 +3712,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": true
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -3324,7 +3724,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -3363,19 +3763,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 4,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 4,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -3394,19 +3794,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
                             "grayed": false
                         },
                         {
                             "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -3425,19 +3825,19 @@
                     },
                     "boxes": [
                         {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
                             "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -3456,19 +3856,19 @@
                     },
                     "boxes": [
                         {
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
                             "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -3487,19 +3887,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         },
                         {
                             "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
                             "grayed": false
                         }
                     ]
@@ -3518,7 +3918,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -3526,11 +3930,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -3549,10 +3949,6 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
                             "color": 1,
                             "grayed": false
                         },
@@ -3561,7 +3957,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -3594,7 +3994,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -3602,11 +4002,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -3625,7 +4025,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -3633,11 +4037,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -3676,19 +4076,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 2,
+                            "grayed": true
+                        },
+                        {
+                            "color": 2,
                             "grayed": true
                         },
                         {
                             "color": 0,
-                            "grayed": true
-                        },
-                        {
-                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -3711,15 +4111,15 @@
                             "grayed": true
                         },
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": true
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -3738,15 +4138,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": true
-                        },
-                        {
-                            "color": 2,
-                            "grayed": true
-                        },
-                        {
                             "color": 0,
+                            "grayed": true
+                        },
+                        {
+                            "color": 2,
+                            "grayed": true
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         },
                         {
@@ -3769,19 +4169,19 @@
                     },
                     "boxes": [
                         {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
                             "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -3814,7 +4214,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -3822,11 +4226,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -3845,15 +4245,15 @@
                     },
                     "boxes": [
                         {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
                             "color": 1,
                             "grayed": false
                         },
                         {
                             "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -3876,11 +4276,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -3888,7 +4288,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -3927,19 +4327,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 4,
                             "grayed": true
                         },
                         {
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
                             "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -3962,15 +4362,15 @@
                             "grayed": true
                         },
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -3989,19 +4389,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 4,
                             "grayed": true
                         },
                         {
-                            "color": 2,
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         },
                         {
                             "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -4020,7 +4420,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         },
                         {
@@ -4028,7 +4428,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 4,
                             "grayed": false
                         },
                         {
@@ -4051,19 +4451,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
                             "color": 2,
                             "grayed": false
                         },
                         {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
                             "grayed": false
                         }
                     ]
@@ -4100,15 +4500,15 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
                             "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -4131,15 +4531,15 @@
                             "grayed": true
                         },
                         {
+                            "color": 1,
+                            "grayed": false
+                        },
+                        {
                             "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -4158,7 +4558,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": true
                         },
                         {
@@ -4166,11 +4566,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -4189,19 +4589,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": true
                         },
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
                             "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -4256,11 +4656,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 4,
                             "grayed": false
                         },
                         {
@@ -4269,6 +4665,10 @@
                         },
                         {
                             "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
                             "grayed": false
                         }
                     ]
@@ -4287,7 +4687,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 4,
                             "grayed": false
                         },
                         {
@@ -4295,7 +4695,7 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 4,
                             "grayed": false
                         },
                         {
@@ -4322,15 +4722,15 @@
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 4,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -4353,15 +4753,15 @@
                             "grayed": false
                         },
                         {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
                             "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 3,
+                            "color": 4,
                             "grayed": false
                         }
                     ]
@@ -4380,19 +4780,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
+                            "color": 4,
                             "grayed": false
                         },
                         {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
                             "grayed": false
                         }
                     ]
@@ -4411,19 +4811,19 @@
                     },
                     "boxes": [
                         {
+                            "color": 2,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
                             "color": 1,
                             "grayed": false
                         },
                         {
                             "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -4450,11 +4850,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -4473,19 +4873,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 1,
+                            "color": 4,
                             "grayed": false
                         },
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
+                            "color": 4,
                             "grayed": false
                         },
                         {
                             "color": 1,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -4504,7 +4904,11 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 1,
                             "grayed": false
                         },
                         {
@@ -4513,10 +4917,6 @@
                         },
                         {
                             "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
                             "grayed": false
                         }
                     ]
@@ -4539,15 +4939,15 @@
                             "grayed": false
                         },
                         {
-                            "color": 3,
-                            "grayed": false
-                        },
-                        {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
                             "color": 0,
+                            "grayed": false
+                        },
+                        {
+                            "color": 4,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
                             "grayed": false
                         }
                     ]
@@ -4566,15 +4966,15 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
+                            "color": 4,
                             "grayed": false
                         },
                         {
                             "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
                             "grayed": false
                         },
                         {
@@ -4597,7 +4997,7 @@
                     },
                     "boxes": [
                         {
-                            "color": 3,
+                            "color": 4,
                             "grayed": false
                         },
                         {
@@ -4605,11 +5005,11 @@
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 0,
+                            "color": 4,
                             "grayed": false
                         }
                     ]
@@ -4642,19 +5042,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
-                            "grayed": false
-                        },
-                        {
-                            "color": 1,
-                            "grayed": false
-                        },
-                        {
-                            "color": 0,
+                            "color": 4,
                             "grayed": false
                         },
                         {
                             "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 3,
+                            "grayed": false
+                        },
+                        {
+                            "color": 0,
                             "grayed": false
                         }
                     ]
@@ -4673,19 +5073,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 0,
+                            "color": 4,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 4,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 1,
                             "grayed": false
                         },
                         {
-                            "color": 3,
+                            "color": 1,
                             "grayed": false
                         }
                     ]
@@ -4704,19 +5104,19 @@
                     },
                     "boxes": [
                         {
-                            "color": 2,
+                            "color": 4,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 3,
                             "grayed": false
                         },
                         {
-                            "color": 2,
+                            "color": 0,
                             "grayed": false
                         },
                         {
-                            "color": 1,
+                            "color": 4,
                             "grayed": false
                         }
                     ]
