@@ -153,6 +153,11 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
+        Debug.unityLogger.logEnabled = false;
+        GameDebugLogger.MuteAllLogs = true;
+        GameDebugLogger.EnableConsoleLog = false;
+        GameDebugLogger.EnableFileLog = false;
+
         if (!ServiceLocator.TryResolve<IStorageService>(out storageService))
         {
             storageService = new CommonStorageService();

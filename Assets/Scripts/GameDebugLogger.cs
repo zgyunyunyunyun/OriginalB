@@ -16,6 +16,7 @@ public static class GameDebugLogger
 
     public static bool EnableConsoleLog = true;
     public static bool EnableFileLog = true;
+    public static bool MuteAllLogs = true;
 
     public static void Info(string tag, string message)
     {
@@ -34,6 +35,11 @@ public static class GameDebugLogger
 
     private static void Write(string level, string tag, string message)
     {
+        if (MuteAllLogs)
+        {
+            return;
+        }
+
         var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{level}] [{tag}] {message}";
         EnsureServices();
 

@@ -63,6 +63,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
     [Header("Game Link")]
     [SerializeField] private GameManager gameManager;
+    [SerializeField] private CatUnlockManager catUnlockManager;
 
     [Header("Truck Elimination")]
     [SerializeField] private GameObject carPrefab;
@@ -199,6 +200,8 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private Vector2 staminaInsufficientBubblePosition = new Vector2(0f, 120f);
     [SerializeField, Min(0.1f)] private float staminaInsufficientBubbleDuration = 1.8f;
     [SerializeField, Min(0.1f)] private float colorCountWarningBubbleDuration = 2.2f;
+    [SerializeField] private string saveLevelSuccessBubbleText = "关卡保存成功";
+    [SerializeField, Min(0.1f)] private float saveLevelSuccessBubbleDuration = 1.4f;
     [SerializeField, Min(0)] private int winRewardCoinCount = 10;
     [SerializeField] private bool persistEconomyData = true;
     [SerializeField] private bool preferPackagedDesignedLevelsInGameMode = true;
@@ -332,6 +335,7 @@ public class ShelfSpawnManager : MonoBehaviour
     private int addShelfAttemptSequence;
     private float nextEliminationSnapshotLogTime;
     private const string DesignedLevelFolderName = "DesignedLevels";
+    private const string ResourcesFolderName = "Resources";
     private const string DesignedLevelsFileName = "designed_levels.json";
     private const string DesignedLevelsResourcesPath = "DesignedLevels/designed_levels";
     private const string EconomyCoinPrefKey = "ShelfSpawn.Economy.Coin";
@@ -464,9 +468,19 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void Awake()
     {
+        Debug.unityLogger.logEnabled = false;
+        GameDebugLogger.MuteAllLogs = true;
+        GameDebugLogger.EnableConsoleLog = false;
+        GameDebugLogger.EnableFileLog = false;
+
         if (gameManager == null)
         {
             gameManager = FindObjectOfType<GameManager>(true);
+        }
+
+        if (catUnlockManager == null)
+        {
+            catUnlockManager = FindObjectOfType<CatUnlockManager>(true);
         }
 
         if (!ServiceLocator.TryResolve<IPlatformContext>(out platformContext))
@@ -804,6 +818,10 @@ public class ShelfSpawnManager : MonoBehaviour
         HideHintMessage();
         StopCatIntroVisual();
         HideWinResultPanel();
+        if (catUnlockManager != null)
+        {
+            catUnlockManager.ClearWinUnlockDisplay();
+        }
         HideRestartSettingsOverlay();
         CloseShelfConfigOverlay();
         waitingRefreshShelfSelection = false;
@@ -1012,6 +1030,10 @@ public class ShelfSpawnManager : MonoBehaviour
 
         SaveDesignedLevelToFile(data);
         LogInfo($"Designed level saved(file) | id={data.levelId} | shelfCount={data.shelves.Count}");
+        if (!string.IsNullOrWhiteSpace(saveLevelSuccessBubbleText))
+        {
+            ShowBottomBubble(saveLevelSuccessBubbleText, saveLevelSuccessBubbleDuration);
+        }
         LoadDesignedLevelAsCurrentScene();
     }
 
@@ -1647,8 +1669,7 @@ public class ShelfSpawnManager : MonoBehaviour
             return false;
         }
 
-        data = best;
-        return true;
+        return TryBuildSanitizedDesignedLevel(best, out data);
     }
 
     private void SpawnDesignedLayout(DesignedLevelData data)
@@ -1789,13 +1810,6 @@ public class ShelfSpawnManager : MonoBehaviour
 #if UNITY_EDITOR
         try
         {
-            var editorFolder = GetDesignedLevelEditorAssetFolderPath();
-            if (!Directory.Exists(editorFolder))
-            {
-                Directory.CreateDirectory(editorFolder);
-            }
-
-            File.WriteAllText(GetDesignedLevelsEditorAssetFilePath(), json);
             UnityEditor.AssetDatabase.Refresh();
         }
         catch
@@ -1806,7 +1820,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private string GetDesignedLevelWritableFolderPath()
     {
-        return Path.Combine(Application.persistentDataPath, DesignedLevelFolderName);
+        return Path.Combine(Application.dataPath, ResourcesFolderName, DesignedLevelFolderName);
     }
 
     private string GetDesignedLevelsWritableFilePath()
@@ -1816,12 +1830,12 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private string GetDesignedLevelEditorAssetFolderPath()
     {
-        return Path.Combine(Application.dataPath, DesignedLevelFolderName);
+        return GetDesignedLevelWritableFolderPath();
     }
 
     private string GetDesignedLevelsEditorAssetFilePath()
     {
-        return Path.Combine(GetDesignedLevelEditorAssetFolderPath(), DesignedLevelsFileName);
+        return GetDesignedLevelsWritableFilePath();
     }
 
     private bool TryLoadDesignedLevelCollection(out DesignedLevelCollectionData collection)
@@ -1833,31 +1847,104 @@ public class ShelfSpawnManager : MonoBehaviour
             return collection != null;
         }
 
-#if UNITY_EDITOR
-        if (TryLoadDesignedLevelCollectionFromPath(GetDesignedLevelsEditorAssetFilePath(), out collection))
-        {
-            return collection != null;
-        }
-#endif
+        return TryLoadPackagedDesignedLevelCollection(out collection);
+    }
 
+    private static bool TryLoadPackagedDesignedLevelCollection(out DesignedLevelCollectionData collection)
+    {
+        collection = null;
         var packagedText = Resources.Load<TextAsset>(DesignedLevelsResourcesPath);
-        if (packagedText != null && !string.IsNullOrWhiteSpace(packagedText.text))
+        if (packagedText == null || string.IsNullOrWhiteSpace(packagedText.text))
         {
-            try
+            return false;
+        }
+
+        try
+        {
+            collection = JsonUtility.FromJson<DesignedLevelCollectionData>(packagedText.text);
+            return collection != null && collection.levels != null;
+        }
+        catch
+        {
+            collection = null;
+            return false;
+        }
+    }
+
+    private bool TryBuildSanitizedDesignedLevel(DesignedLevelData source, out DesignedLevelData sanitized)
+    {
+        sanitized = null;
+        if (source == null || source.shelves == null || source.shelves.Count <= 0)
+        {
+            return false;
+        }
+
+        var copy = new DesignedLevelData
+        {
+            version = source.version,
+            levelIndex = source.levelIndex,
+            levelId = source.levelId,
+            shelfColumnCount = source.shelfColumnCount,
+            columnShelfCounts = source.columnShelfCounts != null ? new List<int>(source.columnShelfCounts) : new List<int>(),
+            columnVerticalOffsets = source.columnVerticalOffsets != null ? new List<float>(source.columnVerticalOffsets) : new List<float>(),
+            shelves = new List<DesignedShelfData>()
+        };
+
+        var positionSet = new HashSet<string>();
+        for (var i = 0; i < source.shelves.Count; i++)
+        {
+            var shelf = source.shelves[i];
+            if (shelf == null)
             {
-                collection = JsonUtility.FromJson<DesignedLevelCollectionData>(packagedText.text);
-                if (collection != null && collection.levels != null)
+                continue;
+            }
+
+            var key = BuildShelfPositionKey(shelf.position);
+            if (!positionSet.Add(key))
+            {
+                continue;
+            }
+
+            var shelfCopy = new DesignedShelfData
+            {
+                position = shelf.position,
+                rotation = shelf.rotation,
+                boxes = new List<DesignedBoxData>()
+            };
+
+            if (shelf.boxes != null)
+            {
+                for (var b = 0; b < shelf.boxes.Count; b++)
                 {
-                    return true;
+                    var box = shelf.boxes[b];
+                    if (box == null)
+                    {
+                        continue;
+                    }
+
+                    shelfCopy.boxes.Add(new DesignedBoxData
+                    {
+                        color = box.color,
+                        grayed = box.grayed
+                    });
                 }
             }
-            catch
-            {
-                collection = null;
-            }
+
+            copy.shelves.Add(shelfCopy);
         }
 
-        return false;
+        if (copy.shelves.Count <= 0)
+        {
+            return false;
+        }
+
+        sanitized = copy;
+        return true;
+    }
+
+    private static string BuildShelfPositionKey(Vector3 position)
+    {
+        return $"{position.x:F4}|{position.y:F4}|{position.z:F4}";
     }
 
     private static bool TryLoadDesignedLevelCollectionFromPath(string path, out DesignedLevelCollectionData collection)
@@ -2105,6 +2192,10 @@ public class ShelfSpawnManager : MonoBehaviour
         isFinalDesignedLevelWin = false;
         HideDimOverlay();
         HideWinResultPanel();
+        if (catUnlockManager != null)
+        {
+            catUnlockManager.ClearWinUnlockDisplay();
+        }
         if (Mathf.Abs(Time.timeScale) < 0.0001f)
         {
             Time.timeScale = 1f;
@@ -5947,6 +6038,28 @@ public class ShelfSpawnManager : MonoBehaviour
 
         Time.timeScale = 1f;
         HideWinResultPanel();
+        if (catUnlockManager != null)
+        {
+            catUnlockManager.HideUnlockWinPanel();
+        }
+        HideDimOverlay();
+        GoToNextLevelByButton();
+    }
+
+    private void GoToNextLevelFromUnlockWinPanelByButton()
+    {
+        if (isFinalDesignedLevelWin)
+        {
+            LogInfo($"Unlock win panel next blocked: final designed level reached | level={Mathf.Max(1, currentLevelIndex)}");
+            return;
+        }
+
+        Time.timeScale = 1f;
+        if (catUnlockManager != null)
+        {
+            catUnlockManager.HideUnlockWinPanel();
+        }
+
         HideDimOverlay();
         GoToNextLevelByButton();
     }
@@ -6514,6 +6627,12 @@ public class ShelfSpawnManager : MonoBehaviour
         UnityEngine.PlayerPrefs.DeleteKey(EconomyCoinPrefKey);
         UnityEngine.PlayerPrefs.DeleteKey(EconomyStaminaPrefKey);
         UnityEngine.PlayerPrefs.DeleteKey(EconomyStaminaRecoveryStartTicksPrefKey);
+
+        if (catUnlockManager != null)
+        {
+            catUnlockManager.ClearLocalUnlockData();
+        }
+
         UnityEngine.PlayerPrefs.Save();
 
         staminaConsumedForCurrentRound = false;
@@ -6521,7 +6640,7 @@ public class ShelfSpawnManager : MonoBehaviour
         InitializeEconomyState();
         UpdateEconomyHud();
         ApplyBoxInteractionMode();
-        LogInfo("测试清档完成：金币与体力存档已重置。", this);
+        LogInfo("测试清档完成：金币、体力与小猫解锁存档已重置。", this);
     }
 
     private void OpenRestartSettingsOverlay()
@@ -7612,6 +7731,16 @@ public class ShelfSpawnManager : MonoBehaviour
     {
         sprite = null;
         color = Color.white;
+
+        if (catUnlockManager != null
+            && catUnlockManager.TryGetCatVisualForLevel(Mathf.Max(1, currentLevelIndex), out var levelCatSprite, out var levelCatColor)
+            && levelCatSprite != null)
+        {
+            sprite = levelCatSprite;
+            color = levelCatColor;
+            return true;
+        }
+
         if (catPrefab == null)
         {
             return false;
@@ -7647,6 +7776,10 @@ public class ShelfSpawnManager : MonoBehaviour
     private void HideWinMessage()
     {
         HideWinResultPanel();
+        if (catUnlockManager != null)
+        {
+            catUnlockManager.HideUnlockWinPanel();
+        }
         if (catWinTextRef != null)
         {
             catWinTextRef.gameObject.SetActive(false);
@@ -7719,8 +7852,32 @@ public class ShelfSpawnManager : MonoBehaviour
 
         StopCatIntroVisual();
         HideHintMessage();
+
+        var unlockedCat = default(CatUnlockManager.CatUnlockConfig);
+        var unlockedByThisWin = catUnlockManager != null
+            && catUnlockManager.TryHandleLevelWin(Mathf.Max(1, currentLevelIndex), out unlockedCat);
+
         ShowDimOverlay();
-        ShowWinResultPanel(reward);
+
+        var shownByUnlockPanel = false;
+        if (unlockedByThisWin && catUnlockManager != null && unlockedCat != null)
+        {
+            catUnlockManager.ClearWinUnlockDisplay();
+            shownByUnlockPanel = catUnlockManager.ShowUnlockWinPanel(
+                reward,
+                unlockedCat,
+                GoToNextLevelFromUnlockWinPanelByButton,
+                !isFinalDesignedLevelWin);
+        }
+
+        if (shownByUnlockPanel)
+        {
+            HideWinResultPanel();
+        }
+        else
+        {
+            ShowWinResultPanel(reward);
+        }
 
         var allBoxInteractions = FindObjectsOfType<BoxInteractionController>(true);
         for (var i = 0; i < allBoxInteractions.Length; i++)
