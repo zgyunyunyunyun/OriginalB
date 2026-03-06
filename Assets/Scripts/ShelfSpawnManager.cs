@@ -73,6 +73,26 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField, Min(0.01f)] private float boxToTruckMoveDuration = 0.2f;
     [SerializeField, Min(0.01f)] private float truckShiftDuration = 0.18f;
     [SerializeField, Min(0.1f)] private float truckExitSpeed = 6f;
+    [SerializeField, Range(0.1f, 1f)] private float boxScaleOnTruckRatio = 0.5f;
+
+    [Header("Match VFX")]
+    [SerializeField] private BoxMatchVfxPlayer boxMatchVfxPlayer;
+    [SerializeField] private bool autoFindBoxMatchVfxPlayer = true;
+    [SerializeField] private bool enableMatch4VfxInGameMode = true;
+
+    [Header("Placement SFX")]
+    [SerializeField] private BoxPlacementSfxPlayer boxPlacementSfxPlayer;
+    [SerializeField] private bool autoFindBoxPlacementSfxPlayer = true;
+    [SerializeField] private bool enableBoxPlacementSfxInGameMode = true;
+    [SerializeField] private AudioClip boxPlacementSfxClipOverride;
+    [SerializeField, Range(0f, 1f)] private float boxPlacementSfxVolume = 1f;
+    [SerializeField] private bool enableMatch4SfxInGameMode = true;
+    [SerializeField] private AudioClip match4SfxClipOverride;
+    [SerializeField, Range(0f, 1f)] private float match4SfxVolume = 1f;
+    [SerializeField] private bool enableTruckCarrySfxInGameMode = true;
+    [SerializeField] private AudioClip truckCarrySfxClipOverride;
+    [SerializeField, Range(0f, 1f)] private float truckCarrySfxVolume = 1f;
+    [SerializeField, Min(0.05f)] private float truckCarrySfxFadeDuration = 1.5f;
 
     [Header("Cat Win Flow")]
     [SerializeField] private GameObject catPrefab;
@@ -481,6 +501,24 @@ public class ShelfSpawnManager : MonoBehaviour
         if (catUnlockManager == null)
         {
             catUnlockManager = FindObjectOfType<CatUnlockManager>(true);
+        }
+
+        if (boxMatchVfxPlayer == null && autoFindBoxMatchVfxPlayer)
+        {
+            boxMatchVfxPlayer = FindObjectOfType<BoxMatchVfxPlayer>(true);
+            if (boxMatchVfxPlayer == null)
+            {
+                boxMatchVfxPlayer = gameObject.AddComponent<BoxMatchVfxPlayer>();
+            }
+        }
+
+        if (boxPlacementSfxPlayer == null && autoFindBoxPlacementSfxPlayer)
+        {
+            boxPlacementSfxPlayer = FindObjectOfType<BoxPlacementSfxPlayer>(true);
+            if (boxPlacementSfxPlayer == null)
+            {
+                boxPlacementSfxPlayer = gameObject.AddComponent<BoxPlacementSfxPlayer>();
+            }
         }
 
         if (!ServiceLocator.TryResolve<IPlatformContext>(out platformContext))
@@ -968,6 +1006,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (sourceShelf != null
             && targetShelf != null
+            && sourceShelf != targetShelf
             && targetShelf.StackRoot != null
             && targetShelf.StackRoot.childCount > 0)
         {
@@ -980,6 +1019,9 @@ public class ShelfSpawnManager : MonoBehaviour
                     toShelfIndex = targetShelf.ShelfIndex,
                     movedBox = moved
                 });
+
+                TryPlayBoxPlacementSfx(targetShelf, moved);
+                TryPlayMatch4Vfx(targetShelf, moved);
             }
         }
 
@@ -987,6 +1029,143 @@ public class ShelfSpawnManager : MonoBehaviour
         {
             StartCoroutine(ProcessTruckEliminationsRoutine());
         }
+    }
+
+    private void TryPlayMatch4Vfx(ShelfInteractionController targetShelf, Transform movedBox)
+    {
+        if (!enableMatch4VfxInGameMode || IsLevelDesignMode)
+        {
+            return;
+        }
+
+        if (boxMatchVfxPlayer == null)
+        {
+            if (!autoFindBoxMatchVfxPlayer)
+            {
+                return;
+            }
+
+            boxMatchVfxPlayer = FindObjectOfType<BoxMatchVfxPlayer>(true);
+            if (boxMatchVfxPlayer == null)
+            {
+                boxMatchVfxPlayer = gameObject.AddComponent<BoxMatchVfxPlayer>();
+            }
+        }
+
+        if (targetShelf == null || targetShelf.StackRoot == null)
+        {
+            return;
+        }
+
+        if (!TryGetUniformShelfColor(targetShelf.StackRoot, out var uniformColor, out _))
+        {
+            return;
+        }
+
+        TryPlayMatch4Sfx(targetShelf, movedBox);
+
+        var effectAnchor = targetShelf.transform != null
+            ? targetShelf.transform
+            : (movedBox != null ? movedBox : targetShelf.StackRoot);
+        var displayColor = ResolveDefaultDisplayColor(uniformColor);
+        if (boxGenerationManager != null)
+        {
+            boxGenerationManager.TryGetDisplayColor(uniformColor, out displayColor);
+        }
+
+        boxMatchVfxPlayer.PlayBurst(effectAnchor, displayColor, false);
+    }
+
+    private void TryPlayBoxPlacementSfx(ShelfInteractionController targetShelf, Transform movedBox)
+    {
+        if (!enableBoxPlacementSfxInGameMode || IsLevelDesignMode)
+        {
+            return;
+        }
+
+        if (boxPlacementSfxPlayer == null)
+        {
+            if (!autoFindBoxPlacementSfxPlayer)
+            {
+                return;
+            }
+
+            boxPlacementSfxPlayer = FindObjectOfType<BoxPlacementSfxPlayer>(true);
+            if (boxPlacementSfxPlayer == null)
+            {
+                boxPlacementSfxPlayer = gameObject.AddComponent<BoxPlacementSfxPlayer>();
+            }
+        }
+
+        var effectAnchor = targetShelf != null && targetShelf.transform != null
+            ? targetShelf.transform
+            : movedBox;
+        if (effectAnchor == null)
+        {
+            return;
+        }
+
+        boxPlacementSfxPlayer.PlayPlacementSfxScaled(effectAnchor, boxPlacementSfxClipOverride, boxPlacementSfxVolume);
+    }
+
+    private void TryPlayMatch4Sfx(ShelfInteractionController targetShelf, Transform movedBox)
+    {
+        if (!enableMatch4SfxInGameMode || IsLevelDesignMode)
+        {
+            return;
+        }
+
+        if (!TryResolveBoxPlacementSfxPlayer())
+        {
+            return;
+        }
+
+        var effectAnchor = targetShelf != null && targetShelf.transform != null
+            ? targetShelf.transform
+            : movedBox;
+        if (effectAnchor == null)
+        {
+            return;
+        }
+
+        boxPlacementSfxPlayer.PlayPlacementSfxScaled(effectAnchor, match4SfxClipOverride, match4SfxVolume);
+    }
+
+    private void TryPlayTruckCarrySfx(Transform truckAnchor)
+    {
+        if (!enableTruckCarrySfxInGameMode || IsLevelDesignMode)
+        {
+            return;
+        }
+
+        if (!TryResolveBoxPlacementSfxPlayer())
+        {
+            return;
+        }
+
+        var anchor = truckAnchor != null ? truckAnchor : transform;
+        boxPlacementSfxPlayer.PlayPlacementLoopingSfxWithFade(anchor, truckCarrySfxClipOverride, truckCarrySfxVolume, truckCarrySfxFadeDuration);
+    }
+
+    private bool TryResolveBoxPlacementSfxPlayer()
+    {
+        if (boxPlacementSfxPlayer != null)
+        {
+            return true;
+        }
+
+        if (!autoFindBoxPlacementSfxPlayer)
+        {
+            return false;
+        }
+
+        boxPlacementSfxPlayer = FindObjectOfType<BoxPlacementSfxPlayer>(true);
+        if (boxPlacementSfxPlayer == null)
+        {
+            boxPlacementSfxPlayer = gameObject.AddComponent<BoxPlacementSfxPlayer>();
+        }
+
+        return boxPlacementSfxPlayer != null;
     }
 
     public void RegenerateShelves()
@@ -5439,9 +5618,13 @@ public class ShelfSpawnManager : MonoBehaviour
 
             var startPos = box.position;
             var startRot = box.rotation;
+            var startScale = box.localScale;
+            var targetScale = startScale * Mathf.Clamp(boxScaleOnTruckRatio, 0.1f, 1f);
             var targetPos = nextBottom;
             var targetRot = truck.truck.transform.rotation;
 
+            box.rotation = targetRot;
+            box.localScale = targetScale;
             if (TryAlignBoxAndGetTop(box, nextBottom, out var snappedTop))
             {
                 targetPos = box.position;
@@ -5450,6 +5633,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
             box.position = startPos;
             box.rotation = startRot;
+            box.localScale = startScale;
 
             var elapsed = 0f;
             var duration = Mathf.Max(0.01f, boxToTruckMoveDuration);
@@ -5459,11 +5643,13 @@ public class ShelfSpawnManager : MonoBehaviour
                 var p = Mathf.Clamp01(elapsed / duration);
                 box.position = Vector3.Lerp(startPos, targetPos, p);
                 box.rotation = Quaternion.Slerp(startRot, targetRot, p);
+                box.localScale = Vector3.Lerp(startScale, targetScale, p);
                 yield return null;
             }
 
             box.position = targetPos;
             box.rotation = targetRot;
+            box.localScale = targetScale;
             box.SetParent(truck.truck.transform, true);
         }
 
@@ -5485,6 +5671,10 @@ public class ShelfSpawnManager : MonoBehaviour
 
         var travelDistance = Mathf.Abs(truckTarget.x - truckStart.x);
         var moveDuration = Mathf.Max(0.01f, travelDistance / Mathf.Max(0.1f, truckExitSpeed));
+
+        // Start truck engine/carry SFX exactly when the truck begins moving out.
+        TryPlayTruckCarrySfx(truck.truck.transform);
+
         var moveTime = 0f;
         while (moveTime < moveDuration)
         {

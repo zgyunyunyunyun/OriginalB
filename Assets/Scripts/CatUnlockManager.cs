@@ -42,6 +42,15 @@ public class CatUnlockManager : MonoBehaviour
     [SerializeField] private string unlockWinCoinRewardPrefix = "获得金币";
     [SerializeField] private string unlockWinTipTemplate = "解锁{0}猫";
 
+    [Header("Cat Detail Popup")]
+    [SerializeField] private GameObject catDetailPopupRoot;
+    [SerializeField] private Image catDetailImage;
+    [SerializeField] private TMP_Text catDetailNameText;
+    [SerializeField] private TMP_Text catDetailConditionText;
+    [SerializeField] private Button catDetailMaskButton;
+    [SerializeField] private string lockedCatNameText = "未解锁";
+    [SerializeField] private string unlockConditionTemplate = "通过第{0}关";
+
     private readonly List<GameObject> itemPool = new List<GameObject>();
     private Action unlockWinNextAction;
 
@@ -81,6 +90,7 @@ public class CatUnlockManager : MonoBehaviour
         RefreshPopup();
         ClearWinUnlockDisplay();
         HideUnlockWinPanel();
+        HideCatDetailPopup();
 
         if (popupRoot != null)
         {
@@ -150,6 +160,7 @@ public class CatUnlockManager : MonoBehaviour
         }
 
         popupRoot.SetActive(true);
+        HideCatDetailPopup();
         RefreshPopup();
         if (popupScrollRect != null)
         {
@@ -163,6 +174,8 @@ public class CatUnlockManager : MonoBehaviour
         {
             popupRoot.SetActive(false);
         }
+
+        HideCatDetailPopup();
     }
 
     public void RefreshPopup()
@@ -194,6 +207,7 @@ public class CatUnlockManager : MonoBehaviour
             var step = ResolveCatStep(cat, i);
             var unlocked = step < unlockedCount;
             BindPopupItem(itemGo, cat != null ? cat.catSprite : null, cat != null ? cat.catName : string.Empty, unlocked);
+            BindPopupItemClick(itemGo, cat, unlocked, ResolveUnlockLevelByStep(step));
         }
 
         ResizePopupContent(cats.Count);
@@ -341,6 +355,12 @@ public class CatUnlockManager : MonoBehaviour
             closePopupButton.onClick.AddListener(ClosePopup);
         }
 
+        if (catDetailMaskButton != null)
+        {
+            catDetailMaskButton.onClick.RemoveListener(HideCatDetailPopup);
+            catDetailMaskButton.onClick.AddListener(HideCatDetailPopup);
+        }
+
         if (unlockWinNextLevelButton != null)
         {
             unlockWinNextLevelButton.onClick.RemoveListener(OnUnlockWinNextLevelClicked);
@@ -351,6 +371,96 @@ public class CatUnlockManager : MonoBehaviour
     private void OnUnlockWinNextLevelClicked()
     {
         unlockWinNextAction?.Invoke();
+    }
+
+    private void BindPopupItemClick(GameObject itemGo, CatUnlockConfig cat, bool unlocked, int unlockLevel)
+    {
+        var button = ResolveOrCreateItemButton(itemGo);
+        if (button == null)
+        {
+            return;
+        }
+
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(() => ShowCatDetailPopup(cat, unlocked, unlockLevel));
+    }
+
+    private static Button ResolveOrCreateItemButton(GameObject itemGo)
+    {
+        if (itemGo == null)
+        {
+            return null;
+        }
+
+        var button = itemGo.GetComponent<Button>();
+        if (button != null)
+        {
+            return button;
+        }
+
+        button = itemGo.GetComponentInChildren<Button>(true);
+        if (button != null)
+        {
+            return button;
+        }
+
+        button = itemGo.AddComponent<Button>();
+        if (button.targetGraphic == null)
+        {
+            var graphic = itemGo.GetComponentInChildren<Graphic>(true);
+            if (graphic != null)
+            {
+                button.targetGraphic = graphic;
+            }
+        }
+
+        return button;
+    }
+
+    private void ShowCatDetailPopup(CatUnlockConfig cat, bool unlocked, int unlockLevel)
+    {
+        if (catDetailPopupRoot == null)
+        {
+            return;
+        }
+
+        if (catDetailImage != null)
+        {
+            catDetailImage.sprite = cat != null ? cat.catSprite : null;
+            catDetailImage.enabled = catDetailImage.sprite != null;
+            catDetailImage.color = unlocked ? Color.white : Color.black;
+        }
+
+        if (catDetailNameText != null)
+        {
+            var catName = cat != null ? cat.catName : string.Empty;
+            catDetailNameText.text = unlocked
+                ? (string.IsNullOrWhiteSpace(catName) ? "未命名小猫" : catName)
+                : lockedCatNameText;
+        }
+
+        if (catDetailConditionText != null)
+        {
+            var template = string.IsNullOrWhiteSpace(unlockConditionTemplate)
+                ? "通过第{0}关"
+                : unlockConditionTemplate;
+            catDetailConditionText.text = string.Format(template, Mathf.Max(1, unlockLevel));
+        }
+
+        catDetailPopupRoot.SetActive(true);
+    }
+
+    private void HideCatDetailPopup()
+    {
+        if (catDetailPopupRoot != null)
+        {
+            catDetailPopupRoot.SetActive(false);
+        }
+    }
+
+    private int ResolveUnlockLevelByStep(int step)
+    {
+        return Mathf.Max(1, firstUnlockLevel + Mathf.Max(0, step) * Mathf.Max(1, unlockInterval));
     }
 
     private void EnsureItemPool(int targetCount)

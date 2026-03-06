@@ -18,6 +18,22 @@ public class BoxInteractionController : MonoBehaviour
     [SerializeField, Min(0f)] private float swayAngle = 7f;
     [SerializeField, Min(0f)] private float clickMoveSpeed = 8f;
     [SerializeField, Min(0f)] private float liftClickCooldown = 0.1f;
+    [SerializeField] private int movingSortingOrder = 20;
+    [Header("Placement Feel (Scheme1)")]
+    [SerializeField] private bool enablePlacementFeel = true;
+    [SerializeField, Min(0.03f)] private float quickPlaceDuration = 0.15f;
+    [SerializeField, Min(0f)] private float quickPlaceArcHeight = 0.06f;
+    [SerializeField, Range(0.6f, 1f)] private float landSquashY = 0.82f;
+    [SerializeField, Min(0.01f)] private float landSquashDuration = 0.06f;
+    [SerializeField, Min(0.01f)] private float landReboundDuration = 0.11f;
+    [Header("Placement Feel (Scheme2 Click)")]
+    [SerializeField] private bool enableScheme2ClickPlacement = true;
+    [SerializeField, Min(0f)] private float scheme2LiftHeight = 0.10f;
+    [SerializeField, Min(0.01f)] private float scheme2LiftDuration = 0.07f;
+    [SerializeField, Min(0f)] private float scheme2TravelArcHeight = 0.16f;
+    [SerializeField, Min(0f)] private float scheme2TiltAngle = 12f;
+    [SerializeField, Min(0f)] private float scheme2ContactPause = 0.04f;
+    [SerializeField] private bool scheme2UseLandingFeedback = true;
     [SerializeField]
     private AnimationCurve clickMoveEase = new AnimationCurve(
         new Keyframe(0f, 0f, 2.5f, 2.5f),
@@ -524,19 +540,15 @@ public class BoxInteractionController : MonoBehaviour
         var targetPosition = transform.position;
 
         transform.SetAsLastSibling();
-        isMovingToShelf = animateMove;
+        isMovingToShelf = true;
+        ApplyTemporaryMovingSortingOrder();
 
         if (!animateMove || clickMoveSpeed <= 0.01f)
         {
-            isMovingToShelf = false;
-            TryApplySortingOrder(sourceShelf);
-            TryApplySortingOrder(targetShelf);
-            sourceShelf.RefreshBoxVisualStates();
-            targetShelf.RefreshBoxVisualStates();
-            shelfTopPosition = transform.position;
-            shelfTopRotation = transform.rotation;
-            NotifyMoveResolved(sourceShelf, targetShelf);
-            LogInteraction($"TryPlaceOnShelf success immediate | from={sourceShelf.ShelfIndex} to={targetShelf.ShelfIndex}");
+            transform.position = sourcePosition;
+            transform.rotation = sourceRotation;
+            animationRoutine = StartCoroutine(QuickPlaceRoutine(targetPosition, targetRotation, sourceShelf, targetShelf));
+            LogInteraction($"TryPlaceOnShelf success quick-place | from={sourceShelf.ShelfIndex} to={targetShelf.ShelfIndex}");
             return true;
         }
 
@@ -841,6 +853,28 @@ public class BoxInteractionController : MonoBehaviour
         }
     }
 
+    private void ApplyTemporaryMovingSortingOrder()
+    {
+        var order = Mathf.Max(4, movingSortingOrder);
+
+        var spriteRenderers = GetComponentsInChildren<SpriteRenderer>(true);
+        for (var i = 0; i < spriteRenderers.Length; i++)
+        {
+            spriteRenderers[i].sortingOrder = order;
+        }
+
+        var renderers = GetComponentsInChildren<Renderer>(true);
+        for (var i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] is SpriteRenderer)
+            {
+                continue;
+            }
+
+            renderers[i].sortingOrder = order;
+        }
+    }
+
     private static void NotifyMoveResolved(ShelfInteractionController sourceShelf, ShelfInteractionController targetShelf)
     {
         var manager = FindObjectOfType<ShelfSpawnManager>();
@@ -863,6 +897,50 @@ public class BoxInteractionController : MonoBehaviour
         var speed = Mathf.Max(0.01f, clickMoveSpeed);
         var distance = Vector3.Distance(startPosition, targetPosition);
         var duration = distance / speed;
+
+        if (!enableScheme2ClickPlacement)
+        {
+            if (duration <= 0.0001f)
+            {
+                transform.position = targetPosition;
+                transform.rotation = targetRotation;
+            }
+            else
+            {
+                var elapsed = 0f;
+                while (elapsed < duration)
+                {
+                    elapsed += Time.deltaTime;
+                    var t = Mathf.Clamp01(elapsed / duration);
+                    var easedT = clickMoveEase != null ? Mathf.Clamp01(clickMoveEase.Evaluate(t)) : t;
+                    transform.position = Vector3.LerpUnclamped(startPosition, targetPosition, easedT);
+                    transform.rotation = Quaternion.Slerp(startRotation, targetRotation, easedT);
+                    yield return null;
+                }
+
+                transform.position = targetPosition;
+                transform.rotation = targetRotation;
+            }
+
+            CompleteMovePlacement(sourceShelf, targetShelf, $"MoveToShelfRoutine complete | from={sourceShelf.ShelfIndex} to={targetShelf.ShelfIndex}");
+            yield break;
+        }
+
+        var liftedStart = startPosition + Vector3.up * Mathf.Max(0f, scheme2LiftHeight);
+        var liftDuration = Mathf.Max(0.01f, scheme2LiftDuration);
+        var liftTime = 0f;
+        while (liftTime < liftDuration)
+        {
+            liftTime += Time.deltaTime;
+            var p = Mathf.Clamp01(liftTime / liftDuration);
+            var eased = p * p * (3f - 2f * p);
+            transform.position = Vector3.Lerp(startPosition, liftedStart, eased);
+            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, eased * 0.25f);
+            yield return null;
+        }
+
+        transform.position = liftedStart;
+
         if (duration <= 0.0001f)
         {
             transform.position = targetPosition;
@@ -870,14 +948,30 @@ public class BoxInteractionController : MonoBehaviour
         }
         else
         {
-            var elapsed = 0f;
-            while (elapsed < duration)
+            var dir = targetPosition - liftedStart;
+            var dirSign = Mathf.Sign(dir.x);
+            if (Mathf.Abs(dirSign) < 0.01f)
             {
-                elapsed += Time.deltaTime;
-                var t = Mathf.Clamp01(elapsed / duration);
-                var easedT = clickMoveEase != null ? Mathf.Clamp01(clickMoveEase.Evaluate(t)) : t;
-                transform.position = Vector3.LerpUnclamped(startPosition, targetPosition, easedT);
-                transform.rotation = Quaternion.Slerp(startRotation, targetRotation, easedT);
+                dirSign = 1f;
+            }
+
+            var travelElapsed = 0f;
+            var travelArcHeight = Mathf.Max(0f, scheme2TravelArcHeight);
+            var maxTilt = Mathf.Max(0f, scheme2TiltAngle);
+            var tiltSign = -dirSign;
+            while (travelElapsed < duration)
+            {
+                travelElapsed += Time.deltaTime;
+                var t = Mathf.Clamp01(travelElapsed / duration);
+                var eased = clickMoveEase != null ? Mathf.Clamp01(clickMoveEase.Evaluate(t)) : t;
+                var basePos = Vector3.LerpUnclamped(liftedStart, targetPosition, eased);
+                var arc = 4f * t * (1f - t) * travelArcHeight;
+                transform.position = basePos + Vector3.up * arc;
+
+                var tiltFactor = Mathf.Sin(t * Mathf.PI);
+                var tiltRot = Quaternion.Euler(0f, 0f, tiltSign * maxTilt * tiltFactor);
+                var targetWithTilt = targetRotation * tiltRot;
+                transform.rotation = Quaternion.Slerp(startRotation, targetWithTilt, eased);
                 yield return null;
             }
 
@@ -885,6 +979,61 @@ public class BoxInteractionController : MonoBehaviour
             transform.rotation = targetRotation;
         }
 
+        var contactPause = Mathf.Max(0f, scheme2ContactPause);
+        if (contactPause > 0f)
+        {
+            var paused = 0f;
+            while (paused < contactPause)
+            {
+                paused += Time.deltaTime;
+                yield return null;
+            }
+        }
+
+        if (scheme2UseLandingFeedback && enablePlacementFeel)
+        {
+            yield return StartCoroutine(PlayLandingFeedbackRoutine(targetShelf));
+        }
+
+        CompleteMovePlacement(sourceShelf, targetShelf, $"MoveToShelfRoutine scheme2 complete | from={sourceShelf.ShelfIndex} to={targetShelf.ShelfIndex}");
+    }
+
+    private IEnumerator QuickPlaceRoutine(
+        Vector3 targetPosition,
+        Quaternion targetRotation,
+        ShelfInteractionController sourceShelf,
+        ShelfInteractionController targetShelf)
+    {
+        var startPosition = transform.position;
+        var startRotation = transform.rotation;
+        var duration = Mathf.Max(0.03f, quickPlaceDuration);
+        var elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            var t = Mathf.Clamp01(elapsed / duration);
+            var eased = t * t * (3f - 2f * t);
+            var basePos = Vector3.Lerp(startPosition, targetPosition, eased);
+            var arcOffset = 4f * t * (1f - t) * Mathf.Max(0f, quickPlaceArcHeight);
+            transform.position = basePos + Vector3.up * arcOffset;
+            transform.rotation = Quaternion.Slerp(startRotation, targetRotation, eased);
+            yield return null;
+        }
+
+        transform.position = targetPosition;
+        transform.rotation = targetRotation;
+
+        if (enablePlacementFeel)
+        {
+            yield return StartCoroutine(PlayLandingFeedbackRoutine(targetShelf));
+        }
+
+        CompleteMovePlacement(sourceShelf, targetShelf, $"QuickPlaceRoutine complete | from={sourceShelf.ShelfIndex} to={targetShelf.ShelfIndex}");
+    }
+
+    private void CompleteMovePlacement(ShelfInteractionController sourceShelf, ShelfInteractionController targetShelf, string logMessage)
+    {
         isMovingToShelf = false;
         TryApplySortingOrder(sourceShelf);
         TryApplySortingOrder(targetShelf);
@@ -894,7 +1043,39 @@ public class BoxInteractionController : MonoBehaviour
         shelfTopRotation = transform.rotation;
         animationRoutine = null;
         NotifyMoveResolved(sourceShelf, targetShelf);
-        LogInteraction($"MoveToShelfRoutine complete | from={sourceShelf.ShelfIndex} to={targetShelf.ShelfIndex}");
+        LogInteraction(logMessage);
+    }
+
+    private IEnumerator PlayLandingFeedbackRoutine(ShelfInteractionController targetShelf)
+    {
+        _ = targetShelf;
+        var baseScale = transform.localScale;
+        var squashScale = new Vector3(baseScale.x * 1.03f, baseScale.y * Mathf.Clamp(landSquashY, 0.6f, 1f), baseScale.z);
+
+        var squashDuration = Mathf.Max(0.01f, landSquashDuration);
+        var t = 0f;
+        while (t < squashDuration)
+        {
+            t += Time.deltaTime;
+            var p = Mathf.Clamp01(t / squashDuration);
+            transform.localScale = Vector3.Lerp(baseScale, squashScale, p);
+
+            yield return null;
+        }
+
+        var reboundDuration = Mathf.Max(0.01f, landReboundDuration);
+        t = 0f;
+        while (t < reboundDuration)
+        {
+            t += Time.deltaTime;
+            var p = Mathf.Clamp01(t / reboundDuration);
+            var easeBack = 1f - Mathf.Pow(1f - p, 2f);
+            transform.localScale = Vector3.Lerp(squashScale, baseScale, easeBack);
+
+            yield return null;
+        }
+
+        transform.localScale = baseScale;
     }
 
     private IEnumerator SnapBackRoutine()

@@ -146,7 +146,7 @@ GameObject:
   - component: {fileID: 3967943142447870764}
   - component: {fileID: 7791055078127793314}
   m_Layer: 5
-  m_Name: Power
+  m_Name: CatImage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
