@@ -224,6 +224,7 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField, Min(0.1f)] private float saveLevelSuccessBubbleDuration = 1.4f;
     [SerializeField, Min(0)] private int winRewardCoinCount = 10;
     [SerializeField] private bool persistEconomyData = true;
+    [SerializeField] private bool persistLevelProgressData = true;
     [SerializeField] private bool preferPackagedDesignedLevelsInGameMode = true;
 
     [Header("Win Result Panel")]
@@ -268,6 +269,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private readonly List<GameObject> spawnedShelves = new List<GameObject>();
     private IPlatformContext platformContext;
+    private IStorageService storageService;
     private IShareService shareService;
     private Transform runtimeShelfRoot;
     private Transform runtimeBoxRoot;
@@ -361,6 +363,7 @@ public class ShelfSpawnManager : MonoBehaviour
     private const string EconomyCoinPrefKey = "ShelfSpawn.Economy.Coin";
     private const string EconomyStaminaPrefKey = "ShelfSpawn.Economy.Stamina";
     private const string EconomyStaminaRecoveryStartTicksPrefKey = "ShelfSpawn.Economy.StaminaRecoveryStartUtcTicks";
+    private const string LevelProgressPrefKey = "ShelfSpawn.Progress.CurrentLevelIndex";
     private readonly Stack<VisualMoveRecord> visualMoveHistory = new Stack<VisualMoveRecord>();
     private static readonly Vector2 LegacyModeToggleButtonPosition = new Vector2(0f, 32f);
     private static readonly Vector2 DefaultTopRightModeToggleButtonPosition = new Vector2(-120f, -96f);
@@ -531,9 +534,15 @@ public class ShelfSpawnManager : MonoBehaviour
             shareService = new CommonShareService();
         }
 
+        if (!ServiceLocator.TryResolve<IStorageService>(out storageService))
+        {
+            storageService = new CommonStorageService();
+        }
+
         ConfigureLogger();
         LogInfo("Awake start");
 
+        InitializeLevelProgressState();
         NormalizeConfiguredCounts();
         EnsureShelfRoot();
         EnsureShelfSubRoots();
@@ -1178,6 +1187,11 @@ public class ShelfSpawnManager : MonoBehaviour
     public void SetRuntimeMode(RuntimeMode mode, bool refreshImmediately = true)
     {
         runtimeMode = mode;
+        if (runtimeMode == RuntimeMode.GameMode)
+        {
+            HideBottomBubbleImmediate();
+        }
+
         if (!IsLevelDesignMode)
         {
             CloseShelfConfigOverlay();
@@ -1263,6 +1277,7 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         currentLevelIndex = Mathf.Max(1, currentLevelIndex + 1);
+        SaveLevelProgressState();
         PrepareForLevelSwitch();
         UpdateLevelIndicator();
         RegenerateShelves();
@@ -1271,9 +1286,39 @@ public class ShelfSpawnManager : MonoBehaviour
     public void GoToPreviousLevelByButton()
     {
         currentLevelIndex = Mathf.Max(1, currentLevelIndex - 1);
+        SaveLevelProgressState();
         PrepareForLevelSwitch();
         UpdateLevelIndicator();
         RegenerateShelves();
+    }
+
+    private void InitializeLevelProgressState()
+    {
+        currentLevelIndex = Mathf.Max(1, currentLevelIndex);
+        if (!persistLevelProgressData)
+        {
+            return;
+        }
+
+        if (!storageService.HasKey(LevelProgressPrefKey))
+        {
+            storageService.SetInt(LevelProgressPrefKey, currentLevelIndex);
+            storageService.Save();
+            return;
+        }
+
+        currentLevelIndex = Mathf.Max(1, storageService.GetInt(LevelProgressPrefKey, currentLevelIndex));
+    }
+
+    private void SaveLevelProgressState()
+    {
+        if (!persistLevelProgressData)
+        {
+            return;
+        }
+
+        storageService.SetInt(LevelProgressPrefKey, Mathf.Max(1, currentLevelIndex));
+        storageService.Save();
     }
 
     public void IncreaseShelfColumnCount()
@@ -2726,7 +2771,7 @@ public class ShelfSpawnManager : MonoBehaviour
         ApplyDefaultFont(text, true);
         text.fontSize = fontSize;
         text.alignment = TextAlignmentOptions.Center;
-        text.color = Color.white;
+        text.color = Color.black;
         text.raycastTarget = false;
         return text;
     }
@@ -6073,7 +6118,7 @@ public class ShelfSpawnManager : MonoBehaviour
         ApplyDefaultFont(text);
         text.fontSize = Mathf.Max(10, levelIndicatorFontSize);
         text.alignment = centerLevelIndicator ? TextAlignmentOptions.Center : TextAlignmentOptions.Left;
-        text.color = Color.white;
+        text.color = Color.black;
         text.raycastTarget = false;
         levelIndicatorTextRef = text;
         return levelIndicatorTextRef;
@@ -6307,19 +6352,19 @@ public class ShelfSpawnManager : MonoBehaviour
     {
         if (persistEconomyData)
         {
-            if (!UnityEngine.PlayerPrefs.HasKey(EconomyCoinPrefKey))
+            if (!storageService.HasKey(EconomyCoinPrefKey))
             {
-                UnityEngine.PlayerPrefs.SetInt(EconomyCoinPrefKey, Mathf.Max(0, initialCoinCount));
+                storageService.SetInt(EconomyCoinPrefKey, Mathf.Max(0, initialCoinCount));
             }
 
-            if (!UnityEngine.PlayerPrefs.HasKey(EconomyStaminaPrefKey))
+            if (!storageService.HasKey(EconomyStaminaPrefKey))
             {
-                UnityEngine.PlayerPrefs.SetInt(EconomyStaminaPrefKey, Mathf.Max(0, initialStaminaCount));
+                storageService.SetInt(EconomyStaminaPrefKey, Mathf.Max(0, initialStaminaCount));
             }
 
-            currentCoinCount = Mathf.Max(0, UnityEngine.PlayerPrefs.GetInt(EconomyCoinPrefKey, Mathf.Max(0, initialCoinCount)));
-            currentStaminaCount = Mathf.Max(0, UnityEngine.PlayerPrefs.GetInt(EconomyStaminaPrefKey, Mathf.Max(0, initialStaminaCount)));
-            var savedTicks = UnityEngine.PlayerPrefs.GetString(EconomyStaminaRecoveryStartTicksPrefKey, string.Empty);
+            currentCoinCount = Mathf.Max(0, storageService.GetInt(EconomyCoinPrefKey, Mathf.Max(0, initialCoinCount)));
+            currentStaminaCount = Mathf.Max(0, storageService.GetInt(EconomyStaminaPrefKey, Mathf.Max(0, initialStaminaCount)));
+            var savedTicks = storageService.GetString(EconomyStaminaRecoveryStartTicksPrefKey, string.Empty);
             if (!string.IsNullOrWhiteSpace(savedTicks) && long.TryParse(savedTicks, out var parsedTicks) && parsedTicks > 0)
             {
                 staminaRecoveryStartUtcTicks = parsedTicks;
@@ -6330,7 +6375,7 @@ public class ShelfSpawnManager : MonoBehaviour
             }
 
             ProcessStaminaRecoveryByElapsedTime(true);
-            UnityEngine.PlayerPrefs.Save();
+            storageService.Save();
         }
         else
         {
@@ -6349,18 +6394,19 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        UnityEngine.PlayerPrefs.SetInt(EconomyCoinPrefKey, Mathf.Max(0, currentCoinCount));
-        UnityEngine.PlayerPrefs.SetInt(EconomyStaminaPrefKey, Mathf.Max(0, currentStaminaCount));
+        storageService.SetInt(EconomyCoinPrefKey, Mathf.Max(0, currentCoinCount));
+        storageService.SetInt(EconomyStaminaPrefKey, Mathf.Max(0, currentStaminaCount));
         if (staminaRecoveryStartUtcTicks > 0 && currentStaminaCount < Mathf.Max(1, staminaRecoveryMax))
         {
-            UnityEngine.PlayerPrefs.SetString(EconomyStaminaRecoveryStartTicksPrefKey, staminaRecoveryStartUtcTicks.ToString());
+            storageService.SetString(EconomyStaminaRecoveryStartTicksPrefKey, staminaRecoveryStartUtcTicks.ToString());
         }
         else
         {
-            UnityEngine.PlayerPrefs.DeleteKey(EconomyStaminaRecoveryStartTicksPrefKey);
+            // IStorageService has no DeleteKey, use empty string to represent missing timestamp.
+            storageService.SetString(EconomyStaminaRecoveryStartTicksPrefKey, string.Empty);
         }
 
-        UnityEngine.PlayerPrefs.Save();
+        storageService.Save();
     }
 
     private void UpdateEconomyHud()
@@ -6580,7 +6626,7 @@ public class ShelfSpawnManager : MonoBehaviour
             ApplyDefaultTmpFont(staminaInsufficientBubbleTextRef);
             staminaInsufficientBubbleTextRef.fontSize = Mathf.Max(18, economyHudFontSize - 2);
             staminaInsufficientBubbleTextRef.alignment = TextAlignmentOptions.Center;
-            staminaInsufficientBubbleTextRef.color = Color.white;
+            staminaInsufficientBubbleTextRef.color = Color.black;
             staminaInsufficientBubbleTextRef.raycastTarget = false;
             staminaInsufficientBubbleTextRef.text = staminaInsufficientBubbleText;
         }
@@ -6595,6 +6641,12 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void ShowBottomBubble(string message, float duration)
     {
+        if (runtimeMode == RuntimeMode.GameMode)
+        {
+            HideBottomBubbleImmediate();
+            return;
+        }
+
         EnsureStaminaInsufficientBubble();
         if (staminaInsufficientBubbleRoot == null)
         {
@@ -6617,6 +6669,20 @@ public class ShelfSpawnManager : MonoBehaviour
         staminaInsufficientBubbleRoot.gameObject.SetActive(true);
         staminaInsufficientBubbleRoutine = StartCoroutine(HideStaminaInsufficientBubbleRoutine(duration));
         BringOverlayForegroundElements();
+    }
+
+    private void HideBottomBubbleImmediate()
+    {
+        if (staminaInsufficientBubbleRoutine != null)
+        {
+            StopCoroutine(staminaInsufficientBubbleRoutine);
+            staminaInsufficientBubbleRoutine = null;
+        }
+
+        if (staminaInsufficientBubbleRoot != null)
+        {
+            staminaInsufficientBubbleRoot.gameObject.SetActive(false);
+        }
     }
 
     private IEnumerator HideStaminaInsufficientBubbleRoutine(float duration)
@@ -6814,19 +6880,22 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void ClearTestSaveDataByButton()
     {
-        UnityEngine.PlayerPrefs.DeleteKey(EconomyCoinPrefKey);
-        UnityEngine.PlayerPrefs.DeleteKey(EconomyStaminaPrefKey);
-        UnityEngine.PlayerPrefs.DeleteKey(EconomyStaminaRecoveryStartTicksPrefKey);
+        storageService.SetInt(EconomyCoinPrefKey, Mathf.Max(0, initialCoinCount));
+        storageService.SetInt(EconomyStaminaPrefKey, Mathf.Max(0, initialStaminaCount));
+        storageService.SetString(EconomyStaminaRecoveryStartTicksPrefKey, string.Empty);
+        storageService.SetInt(LevelProgressPrefKey, 1);
 
         if (catUnlockManager != null)
         {
             catUnlockManager.ClearLocalUnlockData();
         }
 
-        UnityEngine.PlayerPrefs.Save();
+        storageService.Save();
 
         staminaConsumedForCurrentRound = false;
         staminaRecoveryStartUtcTicks = -1L;
+        currentLevelIndex = 1;
+        UpdateLevelIndicator();
         InitializeEconomyState();
         UpdateEconomyHud();
         ApplyBoxInteractionMode();
@@ -7176,7 +7245,7 @@ public class ShelfSpawnManager : MonoBehaviour
             ApplyDefaultFont(labelText, true);
             labelText.fontSize = 20;
             labelText.alignment = TextAlignmentOptions.Center;
-            labelText.color = Color.white;
+            labelText.color = Color.black;
             labelText.raycastTarget = false;
             var offsetValue = c < columnVerticalOffsets.Count ? columnVerticalOffsets[c] : 0f;
             var shelfValue = c < columnShelfCounts.Count ? columnShelfCounts[c] : 0;
@@ -7402,7 +7471,7 @@ public class ShelfSpawnManager : MonoBehaviour
         ApplyDefaultFont(text, true);
         text.fontSize = 24;
         text.alignment = TextAlignmentOptions.Center;
-        text.color = Color.white;
+        text.color = Color.black;
         text.raycastTarget = false;
         return text;
     }
@@ -7713,7 +7782,7 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         text.alignment = TextAlignmentOptions.Center;
-        text.color = Color.white;
+        text.color = Color.black;
         text.raycastTarget = false;
         ApplyDefaultFont(text);
 

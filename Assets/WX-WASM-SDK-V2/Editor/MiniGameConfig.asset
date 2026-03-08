@@ -30,7 +30,7 @@ MonoBehaviour:
     HideAfterCallMain: 1
     preloadFiles: 
     Orientation: 0
-    bgImageSrc: Assets/Materials/CoverImage.png
+    bgImageSrc: Assets/Materials/Basic/CoverImage.png
     dataFileSubPrefix: 
     maxStorage: 200
     defaultReleaseSize: 31457280

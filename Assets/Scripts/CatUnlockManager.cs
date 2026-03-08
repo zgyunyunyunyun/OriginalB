@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using OriginalB.Platform.Core;
+using OriginalB.Platform.Interfaces;
+using OriginalB.Platform.Services.Common;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -53,8 +56,9 @@ public class CatUnlockManager : MonoBehaviour
 
     private readonly List<GameObject> itemPool = new List<GameObject>();
     private Action unlockWinNextAction;
+    private IStorageService storageService;
 
-    public int UnlockedCount => Mathf.Clamp(PlayerPrefs.GetInt(unlockedCountSaveKey, 0), 0, cats.Count);
+    public int UnlockedCount => Mathf.Clamp(GetUnlockedCount(), 0, cats.Count);
 
     public bool TryGetCatForLevel(int levelIndex, out CatUnlockConfig catConfig)
     {
@@ -85,6 +89,11 @@ public class CatUnlockManager : MonoBehaviour
 
     private void Awake()
     {
+        if (!ServiceLocator.TryResolve<IStorageService>(out storageService))
+        {
+            storageService = new CommonStorageService();
+        }
+
         BindButtons();
         ApplyPopupTitle();
         RefreshPopup();
@@ -242,8 +251,8 @@ public class CatUnlockManager : MonoBehaviour
         unlockedCat = FindCatByStep(targetStep);
         var newUnlockedCount = targetUnlockedCount;
 
-        PlayerPrefs.SetInt(unlockedCountSaveKey, newUnlockedCount);
-        PlayerPrefs.Save();
+        storageService.SetInt(GetUnlockedCountStorageKey(), newUnlockedCount);
+        storageService.Save();
         RefreshPopup();
         return unlockedCat != null;
     }
@@ -255,14 +264,21 @@ public class CatUnlockManager : MonoBehaviour
 
     public void ClearLocalUnlockData()
     {
-        if (!string.IsNullOrWhiteSpace(unlockedCountSaveKey))
-        {
-            PlayerPrefs.DeleteKey(unlockedCountSaveKey);
-            PlayerPrefs.Save();
-        }
+        storageService.SetInt(GetUnlockedCountStorageKey(), 0);
+        storageService.Save();
 
         HideUnlockWinPanel();
         RefreshPopup();
+    }
+
+    private int GetUnlockedCount()
+    {
+        return storageService.GetInt(GetUnlockedCountStorageKey(), 0);
+    }
+
+    private string GetUnlockedCountStorageKey()
+    {
+        return string.IsNullOrWhiteSpace(unlockedCountSaveKey) ? "CatUnlock.UnlockedCount" : unlockedCountSaveKey;
     }
 
     private int CalculateUnlockCountByLevel(int levelIndex)

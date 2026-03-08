@@ -18,7 +18,7 @@ namespace OriginalB.Platform.Services.Common
         private static readonly MethodInfo HasKeyMethod = ResolveMethod("HasKey", typeof(string));
         private static readonly MethodInfo SaveMethod = ResolveMethod("Save");
 
-        public int GetInt(string key, int defaultValue = 0)
+        public virtual int GetInt(string key, int defaultValue = 0)
         {
             if (TryInvoke(GetIntMethod, out var result, key, defaultValue) && result is int intValue)
             {
@@ -36,7 +36,7 @@ namespace OriginalB.Platform.Services.Common
             return defaultValue;
         }
 
-        public void SetInt(string key, int value)
+        public virtual void SetInt(string key, int value)
         {
             if (TryInvoke(SetIntMethod, out _, key, value))
             {
@@ -49,7 +49,7 @@ namespace OriginalB.Platform.Services.Common
             }
         }
 
-        public string GetString(string key, string defaultValue = "")
+        public virtual string GetString(string key, string defaultValue = "")
         {
             if (TryInvoke(GetStringMethod, out var result, key, defaultValue) && result is string stringValue)
             {
@@ -67,7 +67,7 @@ namespace OriginalB.Platform.Services.Common
             return defaultValue;
         }
 
-        public void SetString(string key, string value)
+        public virtual void SetString(string key, string value)
         {
             if (TryInvoke(SetStringMethod, out _, key, value))
             {
@@ -80,7 +80,7 @@ namespace OriginalB.Platform.Services.Common
             }
         }
 
-        public bool HasKey(string key)
+        public virtual bool HasKey(string key)
         {
             if (TryInvoke(HasKeyMethod, out var result, key) && result is bool boolValue)
             {
@@ -93,7 +93,7 @@ namespace OriginalB.Platform.Services.Common
             }
         }
 
-        public void Save()
+        public virtual void Save()
         {
             TryInvoke(SaveMethod, out _);
         }
