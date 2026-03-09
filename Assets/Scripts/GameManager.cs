@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OriginalB.Platform.Bootstrap;
 using OriginalB.Platform.Core;
-using OriginalB.Platform.Diagnostics;
 using OriginalB.Platform.Interfaces;
 using OriginalB.Platform.Services.Common;
 using UnityEngine;
 
-[DefaultExecutionOrder(-900)]
 public class GameManager : MonoBehaviour
 {
     public enum GameState
@@ -136,18 +133,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] private BoxGenerationManager boxGenerationManager;
     [SerializeField] private bool logBoxGenerationManagerMissing = true;
 
-    [Header("Platform Runtime")]
-    [SerializeField] private bool applyPlatformServiceOverrideInGameManager = true;
-    [SerializeField] private PlatformServiceMode platformServiceMode = PlatformServiceMode.ForceDouyin;
-
-    [Header("Douyin SDK Config")]
-    [SerializeField] private string douyinRewardedAdUnitId = string.Empty;
-    [SerializeField] private string douyinInterstitialAdUnitId = string.Empty;
-    [SerializeField] private bool douyinForceLogin = true;
-    [SerializeField] private string douyinShareDefaultTitle = "分享后可用";
-    [SerializeField] private string douyinShareDefaultImageUrl = string.Empty;
-    [SerializeField] private string douyinShareDefaultQuery = string.Empty;
-
     private const string DailyDateKey = "GM_DailyDate";
     private const string DailyCountKey = "GM_DailyCount";
     private const string TotalPointsKey = "GM_TotalPoints";
@@ -159,7 +144,6 @@ public class GameManager : MonoBehaviour
     private bool printedBoxGenerationManagerMissingWarning;
     private IStorageService storageService;
     private IAdService adService;
-    private IShareService shareService;
     private IAnalyticsService analyticsService;
 
     public GameState State { get; private set; } = GameState.Idle;
@@ -174,9 +158,6 @@ public class GameManager : MonoBehaviour
         GameDebugLogger.EnableConsoleLog = false;
         GameDebugLogger.EnableFileLog = false;
 
-        ApplyPlatformRuntimeConfig();
-        TryApplyServiceOverride();
-
         if (!ServiceLocator.TryResolve<IStorageService>(out storageService))
         {
             storageService = new CommonStorageService();
@@ -187,11 +168,6 @@ public class GameManager : MonoBehaviour
             adService = new CommonAdService();
         }
 
-        if (!ServiceLocator.TryResolve<IShareService>(out shareService))
-        {
-            shareService = new CommonShareService();
-        }
-
         if (!ServiceLocator.TryResolve<IAnalyticsService>(out analyticsService))
         {
             analyticsService = new CommonAnalyticsService();
@@ -200,20 +176,6 @@ public class GameManager : MonoBehaviour
         EnsureShelfSpawnManager();
         ResetDailyCounterIfNeeded();
         ResetToolInventory();
-    }
-
-    public void ShareGame(Action<ShareResult> onCompleted, string title = null, string imageUrl = null, string query = null)
-    {
-        if (shareService == null)
-        {
-            onCompleted?.Invoke(new ShareResult(false, "Share service unavailable."));
-            return;
-        }
-
-        var resolvedTitle = string.IsNullOrWhiteSpace(title) ? douyinShareDefaultTitle : title;
-        var resolvedImage = string.IsNullOrWhiteSpace(imageUrl) ? douyinShareDefaultImageUrl : imageUrl;
-        var resolvedQuery = string.IsNullOrWhiteSpace(query) ? douyinShareDefaultQuery : query;
-        shareService.Share(new SharePayload(resolvedTitle, resolvedImage, resolvedQuery), onCompleted);
     }
 
     private void Start()
@@ -1128,44 +1090,5 @@ public class GameManager : MonoBehaviour
             var j = rng.Next(i + 1);
             (list[i], list[j]) = (list[j], list[i]);
         }
-    }
-
-    private void ApplyPlatformRuntimeConfig()
-    {
-        PlatformRuntimeConfig.Apply(
-            platformServiceMode,
-            douyinRewardedAdUnitId,
-            douyinInterstitialAdUnitId,
-            douyinForceLogin,
-            douyinShareDefaultTitle,
-            douyinShareDefaultImageUrl,
-            douyinShareDefaultQuery);
-    }
-
-    private void TryApplyServiceOverride()
-    {
-        if (!applyPlatformServiceOverrideInGameManager)
-        {
-            return;
-        }
-
-        if (!PlatformRuntimeConfig.TryGetForcedPlatform(out var forcedPlatform))
-        {
-            return;
-        }
-
-        PlatformServiceRegistrar.RegisterCoreServices(forcedPlatform);
-
-        if (ServiceLocator.TryResolve<IAuthService>(out var authService))
-        {
-            authService.Initialize();
-        }
-
-        if (ServiceLocator.TryResolve<IAdService>(out var resolvedAdService))
-        {
-            resolvedAdService.Initialize();
-        }
-
-        PlatformDiagnosticsReporter.ReportStartup();
     }
 }
