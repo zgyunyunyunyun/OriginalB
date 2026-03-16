@@ -102,7 +102,12 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField, Min(0.01f)] private float catShrinkSpeed = 3.2f;
     [SerializeField, Range(0.01f, 1f)] private float catMinScaleFactor = 0.15f;
     [SerializeField] private string catHintMessage = "找到躲在箱子里的小猫";
+    [SerializeField] private Vector2 catHintTextSize = new Vector2(960f, 80f);
+    [SerializeField] private Vector2 catHintTextPosition = new Vector2(0f, -300f);
+    [SerializeField, Min(10)] private int catHintTextFontSize = 42;
     [SerializeField, Min(0f)] private float catHintDuration = 2f;
+    [SerializeField] private RectTransform customCatIntroUiRootRef;
+    [SerializeField] private Image customCatIntroImageRef;
     [SerializeField] private string catWinMessage = "找到了小猫，游戏通关";
     [SerializeField] private string finalDesignedLevelWinMessage = "已全部通关，敬请期待";
 
@@ -124,10 +129,14 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private Vector2 levelNavButtonSize = new Vector2(160f, 52f);
     [SerializeField] private Vector2 previousLevelButtonPosition = new Vector2(-200f, -48f);
     [SerializeField] private Vector2 nextLevelButtonPosition = new Vector2(200f, -48f);
+    [SerializeField, Min(0.1f)] private float designModeNavButtonScale = 1.5f;
+    [SerializeField] private float designModeNavButtonsOffsetY = -200f;
     [SerializeField] private Vector2 levelIndicatorSize = new Vector2(260f, 52f);
     [SerializeField] private Vector2 levelIndicatorPosition = new Vector2(0f, -24f);
     [SerializeField, Min(10)] private int levelIndicatorFontSize = 30;
     [SerializeField] private bool centerLevelIndicator = true;
+    [SerializeField] private TMP_Text levelIndicatorTextRefConfig;
+    [SerializeField] private bool autoCreateLevelIndicatorWhenMissing = false;
     [SerializeField] private bool showSaveLevelButtonInDesignMode = true;
     [SerializeField] private string saveLevelButtonText = "保存关卡";
     [SerializeField] private Vector2 saveLevelButtonSize = new Vector2(180f, 52f);
@@ -348,6 +357,8 @@ public class ShelfSpawnManager : MonoBehaviour
     private ShareActionUnlockState addEmptyShelfActionUnlockState = ShareActionUnlockState.Locked;
     private bool hidePrimaryControlButtons;
     private bool hideTestClearSaveButton;
+    private bool customCatIntroBaseScaleInitialized;
+    private Vector3 customCatIntroBaseScale = Vector3.one;
     private bool staminaConsumedForCurrentRound;
     private bool applyRestartColorVariationOnNextRefresh;
     private int currentCoinCount;
@@ -792,6 +803,11 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private bool IsCatOverlayInteractiveState()
     {
+        if (IsCustomCatIntroVisible())
+        {
+            return true;
+        }
+
         if (dimOverlayImage == null || !dimOverlayImage.gameObject.activeInHierarchy)
         {
             return false;
@@ -4399,7 +4415,8 @@ public class ShelfSpawnManager : MonoBehaviour
     {
         configuredTotalShelfCount = Mathf.Max(1, configuredTotalShelfCount);
         configuredEmptyShelfCount = Mathf.Clamp(configuredEmptyShelfCount, 0, configuredTotalShelfCount - 1);
-        configuredFilledShelfCount = Mathf.Max(1, configuredFilledShelfCount);
+        var activeShelfCount = Mathf.Max(1, configuredTotalShelfCount - configuredEmptyShelfCount);
+        configuredFilledShelfCount = activeShelfCount;
     }
 
     private int ResolveConfiguredTotalBoxCount(int targetShelfCount)
@@ -4407,7 +4424,8 @@ public class ShelfSpawnManager : MonoBehaviour
         var shelfCount = Mathf.Max(1, targetShelfCount);
         var emptyCount = Mathf.Clamp(configuredEmptyShelfCount, 0, shelfCount - 1);
         var activeShelfCount = Mathf.Max(1, shelfCount - emptyCount);
-        var filledShelves = Mathf.Clamp(configuredFilledShelfCount, 1, activeShelfCount);
+        var filledShelves = activeShelfCount;
+        configuredFilledShelfCount = filledShelves;
         var totalBoxes = filledShelves * Mathf.Max(1, boxesPerShelf);
         return totalBoxes;
     }
@@ -5957,8 +5975,12 @@ public class ShelfSpawnManager : MonoBehaviour
             return;
         }
 
-        previousLevelButton = EnsureLevelNavButton(previousLevelButton, "PreviousLevelButton", previousLevelButtonText, previousLevelButtonPosition, GoToPreviousLevelByButton);
-        nextLevelButton = EnsureLevelNavButton(nextLevelButton, "NextLevelButton", nextLevelButtonText, nextLevelButtonPosition, GoToNextLevelByButton);
+        var navButtonSize = ResolveLevelNavButtonSize();
+        var previousButtonPos = ResolveDesignModeButtonPosition(previousLevelButtonPosition);
+        var nextButtonPos = ResolveDesignModeButtonPosition(nextLevelButtonPosition);
+
+        previousLevelButton = EnsureLevelNavButton(previousLevelButton, "PreviousLevelButton", previousLevelButtonText, navButtonSize, previousButtonPos, GoToPreviousLevelByButton);
+        nextLevelButton = EnsureLevelNavButton(nextLevelButton, "NextLevelButton", nextLevelButtonText, navButtonSize, nextButtonPos, GoToNextLevelByButton);
         EnsureLevelIndicatorText();
         ApplyLevelNavigationVisibility();
         BringOverlayForegroundElements();
@@ -5982,8 +6004,8 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.anchorMin = new Vector2(1f, 1f);
         rect.anchorMax = new Vector2(1f, 1f);
         rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = saveLevelButtonSize;
-        rect.anchoredPosition = saveLevelButtonPosition;
+        rect.sizeDelta = ResolveSaveLevelButtonSize();
+        rect.anchoredPosition = ResolveDesignModeButtonPosition(saveLevelButtonPosition);
 
         ApplyLabelText(saveLevelButton.transform, saveLevelButtonText);
 
@@ -6008,7 +6030,7 @@ public class ShelfSpawnManager : MonoBehaviour
         SaveCurrentLayoutAsDesignedLevel();
     }
 
-    private Button EnsureLevelNavButton(Button existingButton, string objectName, string buttonText, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClick)
+    private Button EnsureLevelNavButton(Button existingButton, string objectName, string buttonText, Vector2 buttonSize, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClick)
     {
         var button = existingButton;
         if (button == null)
@@ -6062,7 +6084,7 @@ public class ShelfSpawnManager : MonoBehaviour
         rect.anchorMin = new Vector2(0.5f, 1f);
         rect.anchorMax = new Vector2(0.5f, 1f);
         rect.pivot = new Vector2(0.5f, 1f);
-        rect.sizeDelta = levelNavButtonSize;
+        rect.sizeDelta = buttonSize;
         rect.anchoredPosition = anchoredPos;
 
         ApplyLabelText(button.transform, buttonText);
@@ -6072,30 +6094,85 @@ public class ShelfSpawnManager : MonoBehaviour
         return button;
     }
 
+    private Vector2 ResolveLevelNavButtonSize()
+    {
+        if (!IsLevelDesignMode)
+        {
+            return levelNavButtonSize;
+        }
+
+        return levelNavButtonSize * Mathf.Max(0.1f, designModeNavButtonScale);
+    }
+
+    private Vector2 ResolveSaveLevelButtonSize()
+    {
+        if (!IsLevelDesignMode)
+        {
+            return saveLevelButtonSize;
+        }
+
+        return saveLevelButtonSize * Mathf.Max(0.1f, designModeNavButtonScale);
+    }
+
+    private Vector2 ResolveDesignModeButtonPosition(Vector2 basePosition)
+    {
+        if (!IsLevelDesignMode)
+        {
+            return basePosition;
+        }
+
+        return basePosition + new Vector2(0f, designModeNavButtonsOffsetY);
+    }
+
     private TMP_Text EnsureLevelIndicatorText()
     {
-        if (levelIndicatorTextRef != null)
+        if (levelIndicatorTextRef == null && levelIndicatorTextRefConfig != null)
         {
-            return levelIndicatorTextRef;
+            levelIndicatorTextRef = levelIndicatorTextRefConfig;
         }
 
-        var canvas = EnsureUICanvas();
-        if (canvas == null)
+        if (levelIndicatorTextRef == null)
         {
-            return null;
+            if (!autoCreateLevelIndicatorWhenMissing)
+            {
+                return null;
+            }
+
+            var canvas = EnsureUICanvas();
+            if (canvas == null)
+            {
+                return null;
+            }
+
+            var existing = canvas.transform.Find("LevelIndicatorText");
+            TMP_Text text;
+            if (existing != null)
+            {
+                text = existing.GetComponent<TMP_Text>() ?? existing.gameObject.AddComponent<TextMeshProUGUI>();
+            }
+            else
+            {
+                var go = new GameObject("LevelIndicatorText", typeof(RectTransform), typeof(TextMeshProUGUI));
+                go.transform.SetParent(canvas.transform, false);
+                text = go.GetComponent<TMP_Text>();
+            }
+
+            levelIndicatorTextRef = text;
         }
 
-        var existing = canvas.transform.Find("LevelIndicatorText");
-        TMP_Text text;
-        if (existing != null)
+        if (levelIndicatorTextRef != levelIndicatorTextRefConfig)
         {
-            text = existing.GetComponent<TMP_Text>() ?? existing.gameObject.AddComponent<TextMeshProUGUI>();
+            ApplyLevelIndicatorStyle(levelIndicatorTextRef);
         }
-        else
+
+        return levelIndicatorTextRef;
+    }
+
+    private void ApplyLevelIndicatorStyle(TMP_Text text)
+    {
+        if (text == null)
         {
-            var go = new GameObject("LevelIndicatorText", typeof(RectTransform), typeof(TextMeshProUGUI));
-            go.transform.SetParent(canvas.transform, false);
-            text = go.GetComponent<TMP_Text>();
+            return;
         }
 
         var rect = text.GetComponent<RectTransform>();
@@ -6120,8 +6197,6 @@ public class ShelfSpawnManager : MonoBehaviour
         text.alignment = centerLevelIndicator ? TextAlignmentOptions.Center : TextAlignmentOptions.Left;
         text.color = Color.black;
         text.raycastTarget = false;
-        levelIndicatorTextRef = text;
-        return levelIndicatorTextRef;
     }
 
     private void EnsureEconomyHud()
@@ -7397,7 +7472,7 @@ public class ShelfSpawnManager : MonoBehaviour
         var targetShelfCount = Mathf.Max(1, GetTotalShelvesFromColumns());
         configuredTotalShelfCount = targetShelfCount;
         configuredEmptyShelfCount = Mathf.Clamp(configuredEmptyShelfCount, 0, Mathf.Max(0, targetShelfCount - 1));
-        configuredFilledShelfCount = Mathf.Clamp(configuredFilledShelfCount, 1, Mathf.Max(1, targetShelfCount - configuredEmptyShelfCount));
+        configuredFilledShelfCount = Mathf.Max(1, targetShelfCount - configuredEmptyShelfCount);
         skipDesignedLayoutOnce = true;
         RefreshShelves(targetShelfCount);
     }
@@ -7535,8 +7610,6 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void SetupCatFlowForCurrentBoard()
     {
-        ShowDimOverlay();
-
         var allBoxes = CollectAllRuntimeBoxes();
         for (var i = 0; i < allBoxes.Count; i++)
         {
@@ -7564,9 +7637,116 @@ public class ShelfSpawnManager : MonoBehaviour
             catHintRoutine = null;
         }
 
+        if (HasCustomCatIntroUiConfigured())
+        {
+            catIntroRoutine = StartCoroutine(PlayCustomCatIntroUiRoutine());
+            return;
+        }
+
+        ShowDimOverlay();
+
         catIntroRoutine = StartCoroutine(PlayCatIntroRoutine());
 
         catHintRoutine = StartCoroutine(ShowCatHintRoutine());
+    }
+
+    private bool HasCustomCatIntroUiConfigured()
+    {
+        return customCatIntroUiRootRef != null && customCatIntroImageRef != null;
+    }
+
+    private void EnsureCustomCatIntroBaseScale()
+    {
+        if (customCatIntroBaseScaleInitialized || customCatIntroImageRef == null)
+        {
+            return;
+        }
+
+        customCatIntroBaseScale = customCatIntroImageRef.rectTransform.localScale;
+        customCatIntroBaseScaleInitialized = true;
+    }
+
+    private void SetCustomCatIntroChildrenActive(bool active)
+    {
+        if (customCatIntroUiRootRef == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < customCatIntroUiRootRef.childCount; i++)
+        {
+            var child = customCatIntroUiRootRef.GetChild(i);
+            if (child != null)
+            {
+                child.gameObject.SetActive(active);
+            }
+        }
+    }
+
+    private bool IsCustomCatIntroVisible()
+    {
+        if (!HasCustomCatIntroUiConfigured() || customCatIntroUiRootRef == null || !customCatIntroUiRootRef.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < customCatIntroUiRootRef.childCount; i++)
+        {
+            var child = customCatIntroUiRootRef.GetChild(i);
+            if (child != null && child.gameObject.activeInHierarchy)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private IEnumerator PlayCustomCatIntroUiRoutine()
+    {
+        if (!HasCustomCatIntroUiConfigured())
+        {
+            catIntroRoutine = null;
+            yield break;
+        }
+
+        EnsureCustomCatIntroBaseScale();
+        customCatIntroUiRootRef.gameObject.SetActive(true);
+        SetCustomCatIntroChildrenActive(true);
+
+        var imageRect = customCatIntroImageRef.rectTransform;
+        var baseScale = customCatIntroBaseScaleInitialized ? customCatIntroBaseScale : imageRect.localScale;
+        imageRect.localScale = baseScale;
+
+        var elapsed = 0f;
+        var duration = Mathf.Max(0f, catHintDuration);
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        var minScale = baseScale * Mathf.Clamp(catMinScaleFactor, 0.01f, 1f);
+        while (customCatIntroImageRef != null)
+        {
+            if ((imageRect.localScale - minScale).sqrMagnitude <= 0.000001f)
+            {
+                imageRect.localScale = minScale;
+                break;
+            }
+
+            var scaleStep = Mathf.Max(0.01f, catShrinkSpeed) * Time.unscaledDeltaTime;
+            imageRect.localScale = Vector3.MoveTowards(imageRect.localScale, minScale, scaleStep);
+            yield return null;
+        }
+
+        SetCustomCatIntroChildrenActive(false);
+        if (customCatIntroImageRef != null)
+        {
+            customCatIntroImageRef.rectTransform.localScale = baseScale;
+        }
+
+        catIntroRoutine = null;
     }
 
     private List<Transform> CollectAllRuntimeBoxes()
@@ -7728,11 +7908,13 @@ public class ShelfSpawnManager : MonoBehaviour
     {
         if (type == CatUiType.Hint && catHintTextRef != null)
         {
+            ApplyCatOverlayTextStyle(catHintTextRef, CatUiType.Hint);
             return catHintTextRef;
         }
 
         if (type == CatUiType.Win && catWinTextRef != null)
         {
+            ApplyCatOverlayTextStyle(catWinTextRef, CatUiType.Win);
             return catWinTextRef;
         }
 
@@ -7761,25 +7943,7 @@ public class ShelfSpawnManager : MonoBehaviour
         }
 
         var rect = text.GetComponent<RectTransform>();
-        if (type == CatUiType.Hint)
-        {
-            rect.anchorMin = new Vector2(0.5f, 1f);
-            rect.anchorMax = new Vector2(0.5f, 1f);
-            rect.pivot = new Vector2(0.5f, 1f);
-            rect.sizeDelta = new Vector2(960f, 80f);
-            rect.anchoredPosition = new Vector2(0f, -300f);
-            text.fontSize = 42;
-        }
-        else
-        {
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(1100f, 120f);
-            rect.anchoredPosition = Vector2.zero;
-            text.fontSize = 52;
-            text.fontStyle = FontStyles.Bold;
-        }
+        ApplyCatOverlayTextStyle(text, type);
 
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.black;
@@ -7800,6 +7964,41 @@ public class ShelfSpawnManager : MonoBehaviour
         BringOverlayForegroundElements();
 
         return text;
+    }
+
+    private void ApplyCatOverlayTextStyle(TMP_Text text, CatUiType type)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        var rect = text.GetComponent<RectTransform>();
+        if (rect == null)
+        {
+            return;
+        }
+
+        if (type == CatUiType.Hint)
+        {
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.sizeDelta = catHintTextSize;
+            rect.anchoredPosition = catHintTextPosition;
+            text.fontSize = Mathf.Max(10, catHintTextFontSize);
+            text.fontStyle = FontStyles.Normal;
+        }
+        else
+        {
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(1100f, 120f);
+            rect.anchoredPosition = Vector2.zero;
+            text.fontSize = 52;
+            text.fontStyle = FontStyles.Bold;
+        }
     }
 
     private void ShowDimOverlay()
@@ -7940,6 +8139,11 @@ public class ShelfSpawnManager : MonoBehaviour
             runtimeCatIntroUi.transform.SetAsLastSibling();
         }
 
+        if (customCatIntroUiRootRef != null && customCatIntroUiRootRef.gameObject.activeInHierarchy)
+        {
+            customCatIntroUiRootRef.transform.SetAsLastSibling();
+        }
+
         if (restartSettingsOverlayRoot != null && restartSettingsOverlayRoot.gameObject.activeInHierarchy)
         {
             restartSettingsOverlayRoot.transform.SetAsLastSibling();
@@ -8047,6 +8251,18 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void StopCatIntroVisual()
     {
+        if (HasCustomCatIntroUiConfigured())
+        {
+            SetCustomCatIntroChildrenActive(false);
+            EnsureCustomCatIntroBaseScale();
+            if (customCatIntroImageRef != null)
+            {
+                customCatIntroImageRef.rectTransform.localScale = customCatIntroBaseScaleInitialized
+                    ? customCatIntroBaseScale
+                    : Vector3.one;
+            }
+        }
+
         if (runtimeCatIntroUi != null)
         {
             if (Application.isPlaying)
