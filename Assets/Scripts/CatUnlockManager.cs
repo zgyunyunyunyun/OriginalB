@@ -111,14 +111,19 @@ public class CatUnlockManager : MonoBehaviour
     {
         sprite = null;
         color = Color.white;
+        var safeLevel = Mathf.Max(1, levelIndex);
+        LogStartCatUi($"TryGetCatVisualForLevel begin | level={safeLevel} | catCount={(cats != null ? cats.Count : 0)}");
         if (!TryGetCatForLevel(levelIndex, out var catConfig) || catConfig == null)
         {
+            LogStartCatUi($"TryGetCatVisualForLevel no candidate | level={safeLevel}");
             return false;
         }
 
         sprite = catConfig.catSprite;
         color = Color.white;
-        return sprite != null;
+        var result = sprite != null;
+        LogStartCatUi($"TryGetCatVisualForLevel candidate={ResolveCatDebugName(catConfig)} | hasSprite={result}");
+        return result;
     }
 
     private void Awake()
@@ -513,43 +518,59 @@ public class CatUnlockManager : MonoBehaviour
     {
         if (cats == null || cats.Count <= 0)
         {
+            LogStartCatUi("FindCatForLevelDisplay skipped: cat list empty.");
             return null;
         }
 
         var safeLevel = Mathf.Max(1, levelIndex);
-        CatUnlockConfig best = null;
-        var bestLevel = int.MinValue;
+        var unlockedSet = GetUnlockedCatTokenSet();
+        LogStartCatUi($"FindCatForLevelDisplay begin | level={safeLevel} | unlockedCount={unlockedSet.Count} | catCount={cats.Count}");
 
         for (var i = 0; i < cats.Count; i++)
         {
             var cat = cats[i];
             if (cat == null)
             {
+                LogStartCatUi($"FindCatForLevelDisplay skip[{i}]: config is null");
                 continue;
             }
 
-            var level = ResolveDisplayUnlockLevel(cat, i);
-            if (level > 0 && level <= safeLevel && level > bestLevel)
+            if (IsCatUnlocked(cat, i, unlockedSet))
             {
-                best = cat;
-                bestLevel = level;
+                LogStartCatUi($"FindCatForLevelDisplay skip[{i}]: unlocked | cat={ResolveCatDebugName(cat)}");
+                continue;
             }
-        }
 
-        if (best != null)
-        {
-            return best;
-        }
-
-        for (var i = 0; i < cats.Count; i++)
-        {
-            if (cats[i] != null)
+            var unlockCoinCost = ResolveDisplayUnlockCoinCost(cat);
+            if (unlockCoinCost > 0)
             {
-                return cats[i];
+                LogStartCatUi($"FindCatForLevelDisplay skip[{i}]: coin-required | cat={ResolveCatDebugName(cat)} | coinCost={unlockCoinCost}");
+                continue;
             }
+
+            LogStartCatUi($"FindCatForLevelDisplay selected[{i}] | cat={ResolveCatDebugName(cat)} | unlockLevel={ResolveDisplayUnlockLevel(cat, i)}");
+            return cat;
         }
 
+        LogStartCatUi("FindCatForLevelDisplay no selectable cat after filtering.");
         return null;
+    }
+
+    private static string ResolveCatDebugName(CatUnlockConfig cat)
+    {
+        if (cat == null)
+        {
+            return "null";
+        }
+
+        var id = string.IsNullOrWhiteSpace(cat.catId) ? "(no-id)" : cat.catId.Trim();
+        var name = string.IsNullOrWhiteSpace(cat.catName) ? "(no-name)" : cat.catName.Trim();
+        return $"{id}/{name}";
+    }
+
+    private static void LogStartCatUi(string message)
+    {
+        GameDebugLogger.Info("CatUnlock", $"StartCatUI | {message}");
     }
 
     private bool IsCatUnlocked(CatUnlockConfig cat, int index, HashSet<string> unlockedSet)

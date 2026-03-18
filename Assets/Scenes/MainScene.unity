@@ -1416,7 +1416,7 @@ MonoBehaviour:
   catFindMode: 1
   shelfSpawnManager: {fileID: 1073249297}
   hidePrimaryControlButtons: 0
-  hideTestClearSaveButton: 1
+  hideTestClearSaveButton: 0
   boxGenerationManager: {fileID: 1757883259}
   logBoxGenerationManagerMissing: 1
 --- !u!4 &299424432
@@ -5109,7 +5109,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e8d853b23a6d92c41a19a327dca5745d, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 747e0c138da929f40855d7764f64df2d, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -8363,126 +8363,41 @@ MonoBehaviour:
   defaultFirstUnlockLevel: 5
   defaultUnlockStep: 10
   unlockedCatIdsSaveKey: CatUnlock.UnlockedIds
-  lastValidatedCatCount: 23
+  lastValidatedCatCount: 6
   firstUnlockLevel: 5
   unlockInterval: 10
   unlockedCountSaveKey: CatUnlock.UnlockedCount
   cats:
   - catId: 0
-    catName: cat1
-    catSprite: {fileID: 21300000, guid: 747e0c138da929f40855d7764f64df2d, type: 3}
+    catName: "\u5C0F\u9ED1"
+    catSprite: {fileID: 21300000, guid: 74c0f124ef10b8c45a286c2515be3428, type: 3}
     unlockLevel: 5
     unlockCoinCost: 0
   - catId: 1
-    catName: cat2
-    catSprite: {fileID: 21300000, guid: e8d853b23a6d92c41a19a327dca5745d, type: 3}
+    catName: "\u5C0F\u6A58"
+    catSprite: {fileID: 21300000, guid: 747e0c138da929f40855d7764f64df2d, type: 3}
     unlockLevel: 15
-    unlockCoinCost: 10
+    unlockCoinCost: 0
   - catId: 2
-    catName: cat3
-    catSprite: {fileID: 21300000, guid: 992f1c823480aad4f97d41da08bc1470, type: 3}
-    unlockLevel: 25
-    unlockCoinCost: 20
+    catName: "\u5C0F\u767D"
+    catSprite: {fileID: 21300000, guid: e8d853b23a6d92c41a19a327dca5745d, type: 3}
+    unlockLevel: 10
+    unlockCoinCost: 50
   - catId: 3
-    catName: cat4
-    catSprite: {fileID: 21300000, guid: 775af8e16cb9774428ce58e41ec259e2, type: 3}
-    unlockLevel: 3
-    unlockCoinCost: 10
+    catName: "\u82F9\u679C"
+    catSprite: {fileID: 21300000, guid: 992f1c823480aad4f97d41da08bc1470, type: 3}
+    unlockLevel: 30
+    unlockCoinCost: 0
   - catId: 4
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 5
-    unlockCoinCost: 10
-  - catId: 5
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 2
-    unlockCoinCost: 10
-  - catId: 6
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 2
-    unlockCoinCost: 15
-  - catId: 7
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 75
-    unlockCoinCost: 70
-  - catId: 8
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 85
-    unlockCoinCost: 80
-  - catId: 9
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 95
-    unlockCoinCost: 90
-  - catId: 10
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 105
-    unlockCoinCost: 100
-  - catId: 11
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 115
-    unlockCoinCost: 110
-  - catId: 12
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 125
-    unlockCoinCost: 120
-  - catId: 13
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 135
-    unlockCoinCost: 130
-  - catId: 14
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 145
-    unlockCoinCost: 140
-  - catId: 15
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 155
-    unlockCoinCost: 150
-  - catId: 16
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 165
-    unlockCoinCost: 160
-  - catId: 17
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 175
-    unlockCoinCost: 170
-  - catId: 18
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 185
-    unlockCoinCost: 180
-  - catId: 19
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 195
-    unlockCoinCost: 190
-  - catId: 20
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 205
+    catName: "\u9B54\u672F\u5E08"
+    catSprite: {fileID: 21300000, guid: 775af8e16cb9774428ce58e41ec259e2, type: 3}
+    unlockLevel: 0
     unlockCoinCost: 200
-  - catId: 21
-    catName: cat5
+  - catId: 5
+    catName: "\u9AD8\u8D35"
     catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 215
-    unlockCoinCost: 210
-  - catId: 22
-    catName: cat5
-    catSprite: {fileID: 21300000, guid: ad1786a954e1c75458381e965d98e1b2, type: 3}
-    unlockLevel: 225
-    unlockCoinCost: 220
+    unlockLevel: 0
+    unlockCoinCost: 888
   openPopupButton: {fileID: 27250019}
   popupRoot: {fileID: 653553237}
   closePopupButton: {fileID: 658801519}

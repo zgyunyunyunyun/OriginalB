@@ -7670,6 +7670,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (allBoxes.Count == 0)
         {
+            LogInfo("StartCatUI | SetupCatFlow skipped: runtime boxes empty.");
             return;
         }
 
@@ -7687,9 +7688,13 @@ public class ShelfSpawnManager : MonoBehaviour
 
         if (HasCustomCatIntroUiConfigured())
         {
+            LogInfo($"StartCatUI | SetupCatFlow use custom UI | level={Mathf.Max(1, currentLevelIndex)} | root={customCatIntroUiRootRef.name} | image={customCatIntroImageRef.name}");
+            ApplyCustomCatIntroVisual();
             catIntroRoutine = StartCoroutine(PlayCustomCatIntroUiRoutine());
             return;
         }
+
+        LogInfo($"StartCatUI | SetupCatFlow use runtime UI fallback | level={Mathf.Max(1, currentLevelIndex)}");
 
         ShowDimOverlay();
 
@@ -7754,13 +7759,16 @@ public class ShelfSpawnManager : MonoBehaviour
     {
         if (!HasCustomCatIntroUiConfigured())
         {
+            LogWarn("StartCatUI | PlayCustomCatIntroUiRoutine aborted: custom UI refs missing.");
             catIntroRoutine = null;
             yield break;
         }
 
+        ApplyCustomCatIntroVisual();
         EnsureCustomCatIntroBaseScale();
         customCatIntroUiRootRef.gameObject.SetActive(true);
         SetCustomCatIntroChildrenActive(true);
+        LogInfo($"StartCatUI | Custom intro UI shown | rootActive={customCatIntroUiRootRef.gameObject.activeInHierarchy} | imageEnabled={customCatIntroImageRef.enabled} | hasSprite={(customCatIntroImageRef.sprite != null)}");
 
         var imageRect = customCatIntroImageRef.rectTransform;
         var baseScale = customCatIntroBaseScaleInitialized ? customCatIntroBaseScale : imageRect.localScale;
@@ -7794,7 +7802,31 @@ public class ShelfSpawnManager : MonoBehaviour
             customCatIntroImageRef.rectTransform.localScale = baseScale;
         }
 
+        LogInfo("StartCatUI | Custom intro UI animation finished and hidden.");
+
         catIntroRoutine = null;
+    }
+
+    private void ApplyCustomCatIntroVisual()
+    {
+        if (!HasCustomCatIntroUiConfigured() || customCatIntroImageRef == null)
+        {
+            LogWarn("StartCatUI | ApplyCustomCatIntroVisual skipped: custom UI refs missing.");
+            return;
+        }
+
+        if (TryResolveCatVisual(out var sprite, out var color) && sprite != null)
+        {
+            customCatIntroImageRef.sprite = sprite;
+            customCatIntroImageRef.color = color;
+            customCatIntroImageRef.preserveAspect = true;
+            customCatIntroImageRef.enabled = true;
+            LogInfo($"StartCatUI | Custom image replaced | sprite={sprite.name} | color={color} | level={Mathf.Max(1, currentLevelIndex)}");
+            return;
+        }
+
+        customCatIntroImageRef.enabled = customCatIntroImageRef.sprite != null;
+        LogWarn($"StartCatUI | Custom image replace failed, keep existing sprite | hasExistingSprite={(customCatIntroImageRef.sprite != null)} | level={Mathf.Max(1, currentLevelIndex)}", customCatIntroImageRef);
     }
 
     private List<Transform> CollectAllRuntimeBoxes()
@@ -8243,17 +8275,27 @@ public class ShelfSpawnManager : MonoBehaviour
         sprite = null;
         color = Color.white;
 
+        LogInfo($"StartCatUI | TryResolveCatVisual begin | level={Mathf.Max(1, currentLevelIndex)} | hasCatUnlockManager={(catUnlockManager != null)} | hasCatPrefab={(catPrefab != null)}");
+
+        if (catUnlockManager == null)
+        {
+            catUnlockManager = FindObjectOfType<CatUnlockManager>(true);
+            LogInfo($"StartCatUI | TryResolveCatVisual auto find CatUnlockManager | found={(catUnlockManager != null)}");
+        }
+
         if (catUnlockManager != null
             && catUnlockManager.TryGetCatVisualForLevel(Mathf.Max(1, currentLevelIndex), out var levelCatSprite, out var levelCatColor)
             && levelCatSprite != null)
         {
             sprite = levelCatSprite;
             color = levelCatColor;
+            LogInfo($"StartCatUI | TryResolveCatVisual use CatUnlockManager sprite | sprite={levelCatSprite.name}");
             return true;
         }
 
         if (catPrefab == null)
         {
+            LogWarn("StartCatUI | TryResolveCatVisual failed: catPrefab is null.", this);
             return false;
         }
 
@@ -8262,6 +8304,7 @@ public class ShelfSpawnManager : MonoBehaviour
         {
             sprite = uiImage.sprite;
             color = uiImage.color;
+            LogInfo($"StartCatUI | TryResolveCatVisual fallback to catPrefab Image sprite | sprite={uiImage.sprite.name}");
             return true;
         }
 
@@ -8270,9 +8313,11 @@ public class ShelfSpawnManager : MonoBehaviour
         {
             sprite = spriteRenderer.sprite;
             color = spriteRenderer.color;
+            LogInfo($"StartCatUI | TryResolveCatVisual fallback to catPrefab SpriteRenderer | hasSprite={(sprite != null)}");
             return sprite != null;
         }
 
+        LogWarn("StartCatUI | TryResolveCatVisual failed: no sprite source found.", catPrefab);
         return false;
     }
 
@@ -9411,6 +9456,7 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void ConfigureLogger()
     {
+        GameDebugLogger.MuteAllLogs = !(enableDebugLog || enableDebugFileLog);
         GameDebugLogger.EnableConsoleLog = enableDebugLog;
         GameDebugLogger.EnableFileLog = enableDebugFileLog;
     }
