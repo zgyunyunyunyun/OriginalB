@@ -183,6 +183,9 @@ public class ShelfSpawnManager : MonoBehaviour
     [SerializeField] private GameObject refreshActionReadyRedDot;
     [SerializeField] private GameObject undoActionReadyRedDot;
     [SerializeField] private GameObject addEmptyShelfActionReadyRedDot;
+    [SerializeField] private GameObject refreshActionShareBadge;
+    [SerializeField] private GameObject undoActionShareBadge;
+    [SerializeField] private GameObject addEmptyShelfActionShareBadge;
 
     [Header("Restart Settings UI")]
     [SerializeField] private bool showRestartSettingsButton = true;
@@ -481,6 +484,39 @@ public class ShelfSpawnManager : MonoBehaviour
     public RuntimeMode CurrentRuntimeMode => runtimeMode;
     public bool IsLevelDesignMode => runtimeMode == RuntimeMode.LevelDesignMode;
     public int CurrentLevelIndex => Mathf.Max(1, currentLevelIndex);
+    public int CurrentCoinCount => Mathf.Max(0, currentCoinCount);
+
+    public bool TrySpendCoins(int amount)
+    {
+        var cost = Mathf.Max(0, amount);
+        if (cost <= 0)
+        {
+            return true;
+        }
+
+        if (currentCoinCount < cost)
+        {
+            return false;
+        }
+
+        currentCoinCount = Mathf.Max(0, currentCoinCount - cost);
+        SaveEconomyState();
+        UpdateEconomyHud();
+        return true;
+    }
+
+    public void AddCoins(int amount)
+    {
+        var value = Mathf.Max(0, amount);
+        if (value <= 0)
+        {
+            return;
+        }
+
+        currentCoinCount = Mathf.Max(0, currentCoinCount + value);
+        SaveEconomyState();
+        UpdateEconomyHud();
+    }
 
     public void SetPrimaryControlButtonsHidden(bool hidden)
     {
@@ -3693,9 +3729,21 @@ public class ShelfSpawnManager : MonoBehaviour
 
     private void UpdateGameplayActionRedDots()
     {
-        ApplyGameplayActionRedDotState(refreshActionReadyRedDot, refreshActionUnlockState == ShareActionUnlockState.Ready);
-        ApplyGameplayActionRedDotState(undoActionReadyRedDot, undoActionUnlockState == ShareActionUnlockState.Ready);
-        ApplyGameplayActionRedDotState(addEmptyShelfActionReadyRedDot, addEmptyShelfActionUnlockState == ShareActionUnlockState.Ready);
+        var refreshReady = enableShareUnlockForGameplayActionButtons && refreshActionUnlockState == ShareActionUnlockState.Ready;
+        var undoReady = enableShareUnlockForGameplayActionButtons && undoActionUnlockState == ShareActionUnlockState.Ready;
+        var addReady = enableShareUnlockForGameplayActionButtons && addEmptyShelfActionUnlockState == ShareActionUnlockState.Ready;
+
+        var refreshLocked = enableShareUnlockForGameplayActionButtons && refreshActionUnlockState == ShareActionUnlockState.Locked;
+        var undoLocked = enableShareUnlockForGameplayActionButtons && undoActionUnlockState == ShareActionUnlockState.Locked;
+        var addLocked = enableShareUnlockForGameplayActionButtons && addEmptyShelfActionUnlockState == ShareActionUnlockState.Locked;
+
+        ApplyGameplayActionRedDotState(refreshActionReadyRedDot, refreshReady);
+        ApplyGameplayActionRedDotState(undoActionReadyRedDot, undoReady);
+        ApplyGameplayActionRedDotState(addEmptyShelfActionReadyRedDot, addReady);
+
+        ApplyGameplayActionRedDotState(refreshActionShareBadge, refreshLocked);
+        ApplyGameplayActionRedDotState(undoActionShareBadge, undoLocked);
+        ApplyGameplayActionRedDotState(addEmptyShelfActionShareBadge, addLocked);
     }
 
     private static void ApplyGameplayActionRedDotState(GameObject redDot, bool visible)
@@ -8657,6 +8705,21 @@ public class ShelfSpawnManager : MonoBehaviour
         if (addEmptyShelfActionReadyRedDot == null && addEmptyShelfActionButton != null)
         {
             addEmptyShelfActionReadyRedDot = addEmptyShelfActionButton.transform.Find("RedDot")?.gameObject;
+        }
+
+        if (refreshActionShareBadge == null && refreshActionButton != null)
+        {
+            refreshActionShareBadge = refreshActionButton.transform.Find("ShareBadge")?.gameObject;
+        }
+
+        if (undoActionShareBadge == null && undoActionButton != null)
+        {
+            undoActionShareBadge = undoActionButton.transform.Find("ShareBadge")?.gameObject;
+        }
+
+        if (addEmptyShelfActionShareBadge == null && addEmptyShelfActionButton != null)
+        {
+            addEmptyShelfActionShareBadge = addEmptyShelfActionButton.transform.Find("ShareBadge")?.gameObject;
         }
 
         UpdateGameplayActionRedDots();

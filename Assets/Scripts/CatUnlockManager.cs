@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using OriginalB.Platform.Core;
 using OriginalB.Platform.Interfaces;
@@ -16,9 +17,17 @@ public class CatUnlockManager : MonoBehaviour
         public string catId;
         public string catName = "小猫";
         public Sprite catSprite;
+        [Min(0)] public int unlockLevel;
+        [Min(0)] public int unlockCoinCost;
     }
 
     [Header("Unlock Rules")]
+    [SerializeField, Min(1)] private int defaultFirstUnlockLevel = 5;
+    [SerializeField, Min(1)] private int defaultUnlockStep = 10;
+    [SerializeField] private string unlockedCatIdsSaveKey = "CatUnlock.UnlockedIds";
+    [SerializeField, HideInInspector] private int lastValidatedCatCount;
+
+    [Header("Legacy Migration")]
     [SerializeField, Min(1)] private int firstUnlockLevel = 5;
     [SerializeField, Min(1)] private int unlockInterval = 10;
     [SerializeField] private string unlockedCountSaveKey = "CatUnlock.UnlockedCount";
@@ -51,14 +60,40 @@ public class CatUnlockManager : MonoBehaviour
     [SerializeField] private TMP_Text catDetailNameText;
     [SerializeField] private TMP_Text catDetailConditionText;
     [SerializeField] private Button catDetailMaskButton;
+    [SerializeField] private Button catDetailUnlockButton;
     [SerializeField] private string lockedCatNameText = "未解锁";
-    [SerializeField] private string unlockConditionTemplate = "通过第{0}关";
+    [SerializeField] private string unlockConditionPrefix = "解锁：";
+    [SerializeField] private string unlockConditionSeparator = "、";
+    [SerializeField] private string unlockConditionCoinTemplate = "{0}金币";
+    [SerializeField] private string unlockConditionLevelTemplate = "通过第{0}关";
+    [SerializeField] private string unlockConditionNoneText = "未配置解锁条件";
+    [SerializeField] private string catDetailUnlockButtonText = "解锁";
+
+    [Header("Coin Unlock Bubble")]
+    [SerializeField] private RectTransform coinUnlockFailedBubbleRootRef;
+    [SerializeField] private TMP_Text coinUnlockFailedBubbleTextRefConfig;
+    [SerializeField] private string coinUnlockFailedBubbleText = "解锁失败，金币不足";
+    [SerializeField] private string coinUnlockLevelLockedBubbleText = "解锁失败，未达到关卡条件";
+    [SerializeField] private Vector2 coinUnlockFailedBubbleSize = new Vector2(520f, 72f);
+    [SerializeField] private Vector2 coinUnlockFailedBubblePosition = new Vector2(0f, 120f);
+    [SerializeField, Min(0.1f)] private float coinUnlockFailedBubbleDuration = 1.8f;
+    [SerializeField] private string economyCoinSaveKey = "ShelfSpawn.Economy.Coin";
+    [SerializeField] private string levelProgressSaveKey = "ShelfSpawn.Progress.CurrentLevelIndex";
 
     private readonly List<GameObject> itemPool = new List<GameObject>();
     private Action unlockWinNextAction;
     private IStorageService storageService;
+    private ShelfSpawnManager shelfSpawnManager;
+    private CatUnlockConfig activeDetailCat;
+    private int activeDetailCatIndex = -1;
+    private bool activeDetailUnlocked;
+    private int activeDetailUnlockLevel;
+    private int activeDetailUnlockCoinCost;
+    private RectTransform coinUnlockFailedBubbleRoot;
+    private TMP_Text coinUnlockFailedBubbleTextRef;
+    private Coroutine coinUnlockFailedBubbleRoutine;
 
-    public int UnlockedCount => Mathf.Clamp(GetUnlockedCount(), 0, cats.Count);
+    public int UnlockedCount => Mathf.Clamp(GetUnlockedCountBySet(), 0, cats.Count);
 
     public bool TryGetCatForLevel(int levelIndex, out CatUnlockConfig catConfig)
     {
@@ -68,8 +103,7 @@ public class CatUnlockManager : MonoBehaviour
             return false;
         }
 
-        var catStep = ResolveCatStepByLevel(levelIndex);
-        catConfig = FindCatByStep(catStep);
+        catConfig = FindCatForLevelDisplay(Mathf.Max(1, levelIndex));
         return catConfig != null;
     }
 
@@ -95,6 +129,7 @@ public class CatUnlockManager : MonoBehaviour
         }
 
         BindButtons();
+        MigrateLegacyUnlockCountIfNeeded();
         ApplyPopupTitle();
         RefreshPopup();
         ClearWinUnlockDisplay();
@@ -194,7 +229,7 @@ public class CatUnlockManager : MonoBehaviour
             return;
         }
 
-        var unlockedCount = UnlockedCount;
+        var unlockedSet = GetUnlockedCatTokenSet();
         EnsureItemPool(cats.Count);
 
         for (var i = 0; i < itemPool.Count; i++)
@@ -213,10 +248,9 @@ public class CatUnlockManager : MonoBehaviour
             }
 
             var cat = cats[i];
-            var step = ResolveCatStep(cat, i);
-            var unlocked = step < unlockedCount;
+            var unlocked = IsCatUnlocked(cat, i, unlockedSet);
             BindPopupItem(itemGo, cat != null ? cat.catSprite : null, cat != null ? cat.catName : string.Empty, unlocked);
-            BindPopupItemClick(itemGo, cat, unlocked, ResolveUnlockLevelByStep(step));
+            BindPopupItemClick(itemGo, cat, i, unlocked, ResolveDisplayUnlockLevel(cat, i), ResolveDisplayUnlockCoinCost(cat));
         }
 
         ResizePopupContent(cats.Count);
@@ -233,28 +267,126 @@ public class CatUnlockManager : MonoBehaviour
         }
 
         var safeLevel = Mathf.Max(1, levelIndex);
-        if (!IsUnlockCheckpointLevel(safeLevel))
+        var unlockedSet = GetUnlockedCatTokenSet();
+        CatUnlockConfig latestUnlockedCat = null;
+
+        for (var i = 0; i < cats.Count; i++)
+        {
+            var cat = cats[i];
+            if (cat == null || IsCatUnlocked(cat, i, unlockedSet))
+            {
+                continue;
+            }
+
+            if (!CanUnlockByLevel(cat, i, safeLevel) || ResolveDisplayUnlockCoinCost(cat) > 0)
+            {
+                continue;
+            }
+
+            unlockedSet.Add(BuildCatUnlockToken(cat, i));
+            latestUnlockedCat = cat;
+        }
+
+        if (latestUnlockedCat == null)
         {
             ClearWinUnlockDisplay();
             return false;
         }
 
-        var unlockedCount = UnlockedCount;
-        var targetStep = ResolveCatStepByLevel(safeLevel);
-        var targetUnlockedCount = Mathf.Clamp(targetStep + 1, 0, cats.Count);
-        if (targetUnlockedCount <= unlockedCount)
-        {
-            ClearWinUnlockDisplay();
-            return false;
-        }
-
-        unlockedCat = FindCatByStep(targetStep);
-        var newUnlockedCount = targetUnlockedCount;
-
-        storageService.SetInt(GetUnlockedCountStorageKey(), newUnlockedCount);
-        storageService.Save();
+        SaveUnlockedCatTokenSet(unlockedSet);
         RefreshPopup();
-        return unlockedCat != null;
+        unlockedCat = latestUnlockedCat;
+        return true;
+    }
+
+    public bool TryUnlockCatByCoin(string catId, int currentCoinCount, out CatUnlockConfig unlockedCat, out int cost)
+    {
+        unlockedCat = null;
+        cost = 0;
+        if (cats == null || cats.Count <= 0 || string.IsNullOrWhiteSpace(catId))
+        {
+            return false;
+        }
+
+        var unlockedSet = GetUnlockedCatTokenSet();
+        for (var i = 0; i < cats.Count; i++)
+        {
+            var cat = cats[i];
+            if (cat == null)
+            {
+                continue;
+            }
+
+            if (!string.Equals(cat.catId, catId, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (IsCatUnlocked(cat, i, unlockedSet))
+            {
+                return false;
+            }
+
+            var currentLevel = GetCurrentProgressLevel();
+            if (!IsLevelRequirementSatisfied(cat, i, currentLevel))
+            {
+                return false;
+            }
+
+            cost = ResolveDisplayUnlockCoinCost(cat);
+            if (cost <= 0 || currentCoinCount < cost)
+            {
+                return false;
+            }
+
+            unlockedSet.Add(BuildCatUnlockToken(cat, i));
+            SaveUnlockedCatTokenSet(unlockedSet);
+            RefreshPopup();
+            unlockedCat = cat;
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool CanUnlockCatByCoin(string catId, int currentCoinCount, out int cost)
+    {
+        cost = 0;
+        if (cats == null || cats.Count <= 0 || string.IsNullOrWhiteSpace(catId))
+        {
+            return false;
+        }
+
+        var unlockedSet = GetUnlockedCatTokenSet();
+        for (var i = 0; i < cats.Count; i++)
+        {
+            var cat = cats[i];
+            if (cat == null)
+            {
+                continue;
+            }
+
+            if (!string.Equals(cat.catId, catId, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (IsCatUnlocked(cat, i, unlockedSet))
+            {
+                return false;
+            }
+
+            var currentLevel = GetCurrentProgressLevel();
+            if (!IsLevelRequirementSatisfied(cat, i, currentLevel))
+            {
+                return false;
+            }
+
+            cost = ResolveDisplayUnlockCoinCost(cat);
+            return cost > 0 && currentCoinCount >= cost;
+        }
+
+        return false;
     }
 
     public void ClearWinUnlockDisplay()
@@ -264,65 +396,130 @@ public class CatUnlockManager : MonoBehaviour
 
     public void ClearLocalUnlockData()
     {
-        storageService.SetInt(GetUnlockedCountStorageKey(), 0);
+        storageService.SetString(GetUnlockedCatIdsStorageKey(), string.Empty);
+        storageService.SetInt(GetLegacyUnlockedCountStorageKey(), 0);
         storageService.Save();
 
         HideUnlockWinPanel();
         RefreshPopup();
     }
 
-    private int GetUnlockedCount()
+    private int GetUnlockedCountBySet()
     {
-        return storageService.GetInt(GetUnlockedCountStorageKey(), 0);
+        var unlockedSet = GetUnlockedCatTokenSet();
+        var count = 0;
+        if (cats == null)
+        {
+            return 0;
+        }
+
+        for (var i = 0; i < cats.Count; i++)
+        {
+            if (IsCatUnlocked(cats[i], i, unlockedSet))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
-    private string GetUnlockedCountStorageKey()
+    private string GetUnlockedCatIdsStorageKey()
+    {
+        return string.IsNullOrWhiteSpace(unlockedCatIdsSaveKey) ? "CatUnlock.UnlockedIds" : unlockedCatIdsSaveKey;
+    }
+
+    private string GetLegacyUnlockedCountStorageKey()
     {
         return string.IsNullOrWhiteSpace(unlockedCountSaveKey) ? "CatUnlock.UnlockedCount" : unlockedCountSaveKey;
     }
 
-    private int CalculateUnlockCountByLevel(int levelIndex)
+    private HashSet<string> GetUnlockedCatTokenSet()
     {
-        var safeLevel = Mathf.Max(1, levelIndex);
-        if (safeLevel < Mathf.Max(1, firstUnlockLevel))
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (storageService == null)
         {
-            return 0;
+            return result;
         }
 
-        return 1 + (safeLevel - Mathf.Max(1, firstUnlockLevel)) / Mathf.Max(1, unlockInterval);
-    }
-
-    private bool IsUnlockCheckpointLevel(int levelIndex)
-    {
-        var safeLevel = Mathf.Max(1, levelIndex);
-        if (safeLevel < Mathf.Max(1, firstUnlockLevel))
+        var raw = storageService.GetString(GetUnlockedCatIdsStorageKey(), string.Empty);
+        if (string.IsNullOrWhiteSpace(raw))
         {
-            return false;
+            return result;
         }
 
-        return (safeLevel - firstUnlockLevel) % Mathf.Max(1, unlockInterval) == 0;
-    }
-
-    private int ResolveCatStepByLevel(int levelIndex)
-    {
-        var safeLevel = Mathf.Max(1, levelIndex);
-        if (safeLevel <= firstUnlockLevel)
+        var parts = raw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < parts.Length; i++)
         {
-            return 0;
+            var token = parts[i] != null ? parts[i].Trim() : string.Empty;
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                result.Add(token);
+            }
         }
 
-        var step = 1 + (safeLevel - (firstUnlockLevel + 1)) / Mathf.Max(1, unlockInterval);
-        return Mathf.Max(0, step);
+        return result;
     }
 
-    private CatUnlockConfig FindCatByStep(int step)
+    private void SaveUnlockedCatTokenSet(HashSet<string> unlockedSet)
+    {
+        if (storageService == null)
+        {
+            return;
+        }
+
+        if (unlockedSet == null || unlockedSet.Count <= 0)
+        {
+            storageService.SetString(GetUnlockedCatIdsStorageKey(), string.Empty);
+            storageService.Save();
+            return;
+        }
+
+        var raw = string.Join(",", unlockedSet);
+        storageService.SetString(GetUnlockedCatIdsStorageKey(), raw);
+        storageService.Save();
+    }
+
+    private void MigrateLegacyUnlockCountIfNeeded()
+    {
+        if (storageService == null)
+        {
+            return;
+        }
+
+        var existingIds = storageService.GetString(GetUnlockedCatIdsStorageKey(), string.Empty);
+        if (!string.IsNullOrWhiteSpace(existingIds))
+        {
+            return;
+        }
+
+        var legacyCount = Mathf.Max(0, storageService.GetInt(GetLegacyUnlockedCountStorageKey(), 0));
+        if (legacyCount <= 0 || cats == null || cats.Count <= 0)
+        {
+            return;
+        }
+
+        var unlockedSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var max = Mathf.Min(legacyCount, cats.Count);
+        for (var i = 0; i < max; i++)
+        {
+            unlockedSet.Add(BuildCatUnlockToken(cats[i], i));
+        }
+
+        SaveUnlockedCatTokenSet(unlockedSet);
+    }
+
+    private CatUnlockConfig FindCatForLevelDisplay(int levelIndex)
     {
         if (cats == null || cats.Count <= 0)
         {
             return null;
         }
 
-        var safeStep = Mathf.Max(0, step);
+        var safeLevel = Mathf.Max(1, levelIndex);
+        CatUnlockConfig best = null;
+        var bestLevel = int.MinValue;
+
         for (var i = 0; i < cats.Count; i++)
         {
             var cat = cats[i];
@@ -331,30 +528,170 @@ public class CatUnlockManager : MonoBehaviour
                 continue;
             }
 
-            if (ResolveCatStep(cat, i) == safeStep)
+            var level = ResolveDisplayUnlockLevel(cat, i);
+            if (level > 0 && level <= safeLevel && level > bestLevel)
             {
-                return cat;
+                best = cat;
+                bestLevel = level;
             }
         }
 
-        if (safeStep >= 0 && safeStep < cats.Count)
+        if (best != null)
         {
-            return cats[safeStep];
+            return best;
         }
 
-        return cats[cats.Count - 1];
+        for (var i = 0; i < cats.Count; i++)
+        {
+            if (cats[i] != null)
+            {
+                return cats[i];
+            }
+        }
+
+        return null;
     }
 
-    private static int ResolveCatStep(CatUnlockConfig cat, int fallbackIndex)
+    private bool IsCatUnlocked(CatUnlockConfig cat, int index, HashSet<string> unlockedSet)
     {
-        if (cat != null && !string.IsNullOrWhiteSpace(cat.catId)
-            && int.TryParse(cat.catId, out var parsed)
-            && parsed >= 0)
+        if (unlockedSet == null)
         {
-            return parsed;
+            return false;
         }
 
-        return Mathf.Max(0, fallbackIndex);
+        return unlockedSet.Contains(BuildCatUnlockToken(cat, index));
+    }
+
+    private static string BuildCatUnlockToken(CatUnlockConfig cat, int index)
+    {
+        if (cat != null && !string.IsNullOrWhiteSpace(cat.catId))
+        {
+            return cat.catId.Trim();
+        }
+
+        return $"index_{Mathf.Max(0, index)}";
+    }
+
+    private bool CanUnlockByLevel(CatUnlockConfig cat, int index, int levelIndex)
+    {
+        var unlockLevel = ResolveDisplayUnlockLevel(cat, index);
+        if (unlockLevel <= 0)
+        {
+            return false;
+        }
+
+        // Level-win flow represents "just passed this level", so equal level should unlock.
+        return Mathf.Max(1, levelIndex) >= unlockLevel;
+    }
+
+    private bool IsLevelRequirementSatisfied(CatUnlockConfig cat, int index, int levelIndex)
+    {
+        var unlockLevel = ResolveDisplayUnlockLevel(cat, index);
+        if (unlockLevel <= 0)
+        {
+            return true;
+        }
+
+        return Mathf.Max(1, levelIndex) > unlockLevel;
+    }
+
+    private int ResolveDisplayUnlockLevel(CatUnlockConfig cat, int index)
+    {
+        return cat != null ? Mathf.Max(0, cat.unlockLevel) : 0;
+    }
+
+    private int ResolveDisplayUnlockCoinCost(CatUnlockConfig cat)
+    {
+        return cat != null ? Mathf.Max(0, cat.unlockCoinCost) : 0;
+    }
+
+    private int ResolveLegacyUnlockLevelByIndex(int index)
+    {
+        var safeIndex = Mathf.Max(0, index);
+        var startLevel = Mathf.Max(1, firstUnlockLevel);
+        var interval = Mathf.Max(1, unlockInterval);
+        return startLevel + safeIndex * interval;
+    }
+
+    private void EnsureConfigDefaultsForExistingEntries(bool applyForNewEntriesOnly)
+    {
+        if (cats == null || cats.Count <= 0)
+        {
+            lastValidatedCatCount = 0;
+            return;
+        }
+
+        if (!applyForNewEntriesOnly)
+        {
+            for (var i = 0; i < cats.Count; i++)
+            {
+                ApplyConfigDefaultForIndex(i);
+            }
+
+            lastValidatedCatCount = cats.Count;
+            return;
+        }
+
+        var previousCount = Mathf.Clamp(lastValidatedCatCount, 0, cats.Count);
+        if (cats.Count <= previousCount)
+        {
+            lastValidatedCatCount = cats.Count;
+            return;
+        }
+
+        for (var i = previousCount; i < cats.Count; i++)
+        {
+            ApplyConfigDefaultForIndex(i);
+        }
+
+        lastValidatedCatCount = cats.Count;
+    }
+
+    private void ApplyConfigDefaultForIndex(int index)
+    {
+        if (cats == null || index < 0 || index >= cats.Count)
+        {
+            return;
+        }
+
+        var cat = cats[index];
+        if (cat == null)
+        {
+            return;
+        }
+
+        if (index == 0)
+        {
+            if (cat.unlockLevel <= 0)
+            {
+                cat.unlockLevel = Mathf.Max(1, defaultFirstUnlockLevel);
+            }
+
+            return;
+        }
+
+        var prev = cats[index - 1];
+        var prevUnlockLevel = prev != null ? Mathf.Max(0, prev.unlockLevel) : 0;
+        if (prevUnlockLevel <= 0)
+        {
+            prevUnlockLevel = ResolveLegacyUnlockLevelByIndex(index - 1);
+        }
+
+        if (cat.unlockLevel <= 0)
+        {
+            cat.unlockLevel = prevUnlockLevel + Mathf.Max(1, defaultUnlockStep);
+        }
+
+        var prevUnlockCoinCost = prev != null ? Mathf.Max(0, prev.unlockCoinCost) : 0;
+        if (cat.unlockCoinCost <= 0)
+        {
+            cat.unlockCoinCost = prevUnlockCoinCost + Mathf.Max(1, defaultUnlockStep);
+        }
+    }
+
+    private void OnValidate()
+    {
+        EnsureConfigDefaultsForExistingEntries(true);
     }
 
     private void BindButtons()
@@ -377,6 +714,13 @@ public class CatUnlockManager : MonoBehaviour
             catDetailMaskButton.onClick.AddListener(HideCatDetailPopup);
         }
 
+        if (catDetailUnlockButton != null)
+        {
+            catDetailUnlockButton.onClick.RemoveListener(OnCatDetailUnlockByCoinClicked);
+            catDetailUnlockButton.onClick.AddListener(OnCatDetailUnlockByCoinClicked);
+            ApplyButtonLabel(catDetailUnlockButton, catDetailUnlockButtonText);
+        }
+
         if (unlockWinNextLevelButton != null)
         {
             unlockWinNextLevelButton.onClick.RemoveListener(OnUnlockWinNextLevelClicked);
@@ -389,7 +733,7 @@ public class CatUnlockManager : MonoBehaviour
         unlockWinNextAction?.Invoke();
     }
 
-    private void BindPopupItemClick(GameObject itemGo, CatUnlockConfig cat, bool unlocked, int unlockLevel)
+    private void BindPopupItemClick(GameObject itemGo, CatUnlockConfig cat, int catIndex, bool unlocked, int unlockLevel, int unlockCoinCost)
     {
         var button = ResolveOrCreateItemButton(itemGo);
         if (button == null)
@@ -398,7 +742,7 @@ public class CatUnlockManager : MonoBehaviour
         }
 
         button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(() => ShowCatDetailPopup(cat, unlocked, unlockLevel));
+        button.onClick.AddListener(() => ShowCatDetailPopup(cat, catIndex, unlocked, unlockLevel, unlockCoinCost));
     }
 
     private static Button ResolveOrCreateItemButton(GameObject itemGo)
@@ -433,12 +777,18 @@ public class CatUnlockManager : MonoBehaviour
         return button;
     }
 
-    private void ShowCatDetailPopup(CatUnlockConfig cat, bool unlocked, int unlockLevel)
+    private void ShowCatDetailPopup(CatUnlockConfig cat, int catIndex, bool unlocked, int unlockLevel, int unlockCoinCost)
     {
         if (catDetailPopupRoot == null)
         {
             return;
         }
+
+        activeDetailCat = cat;
+        activeDetailCatIndex = catIndex;
+        activeDetailUnlocked = unlocked;
+        activeDetailUnlockLevel = Mathf.Max(0, unlockLevel);
+        activeDetailUnlockCoinCost = Mathf.Max(0, unlockCoinCost);
 
         if (catDetailImage != null)
         {
@@ -450,33 +800,344 @@ public class CatUnlockManager : MonoBehaviour
         if (catDetailNameText != null)
         {
             var catName = cat != null ? cat.catName : string.Empty;
-            catDetailNameText.text = unlocked
-                ? (string.IsNullOrWhiteSpace(catName) ? "未命名小猫" : catName)
-                : lockedCatNameText;
+            catDetailNameText.text = string.IsNullOrWhiteSpace(catName) ? "未命名小猫" : catName;
         }
 
         if (catDetailConditionText != null)
         {
-            var template = string.IsNullOrWhiteSpace(unlockConditionTemplate)
-                ? "通过第{0}关"
-                : unlockConditionTemplate;
-            catDetailConditionText.text = string.Format(template, Mathf.Max(1, unlockLevel));
+            catDetailConditionText.text = BuildCatUnlockConditionText(activeDetailUnlockLevel, activeDetailUnlockCoinCost);
         }
+
+        ApplyCatDetailUnlockButtonVisibility();
 
         catDetailPopupRoot.SetActive(true);
     }
 
     private void HideCatDetailPopup()
     {
+        activeDetailCat = null;
+        activeDetailCatIndex = -1;
+        activeDetailUnlocked = false;
+        activeDetailUnlockLevel = 0;
+        activeDetailUnlockCoinCost = 0;
+
         if (catDetailPopupRoot != null)
         {
             catDetailPopupRoot.SetActive(false);
         }
     }
 
-    private int ResolveUnlockLevelByStep(int step)
+    private void OnCatDetailUnlockByCoinClicked()
     {
-        return Mathf.Max(1, firstUnlockLevel + Mathf.Max(0, step) * Mathf.Max(1, unlockInterval));
+        if (activeDetailCat == null || activeDetailUnlocked || activeDetailUnlockCoinCost <= 0)
+        {
+            return;
+        }
+
+        var currentLevel = GetCurrentProgressLevel();
+        if (!IsLevelRequirementSatisfied(activeDetailCat, activeDetailCatIndex, currentLevel))
+        {
+            ShowCoinUnlockFailedBubble(coinUnlockLevelLockedBubbleText);
+            return;
+        }
+
+        var cost = Mathf.Max(0, activeDetailUnlockCoinCost);
+        if (!TrySpendCoins(cost))
+        {
+            ShowCoinUnlockFailedBubble(coinUnlockFailedBubbleText);
+            return;
+        }
+
+        if (!TryUnlockCatByCoinInternal(activeDetailCat, activeDetailCatIndex, currentLevel, out _))
+        {
+            RefundCoins(cost);
+            return;
+        }
+
+        HideCatDetailPopup();
+        RefreshPopup();
+    }
+
+    private string BuildCatUnlockConditionText(int unlockLevel, int unlockCoinCost)
+    {
+        var parts = new List<string>(2);
+        if (unlockCoinCost > 0)
+        {
+            var coinTemplate = string.IsNullOrWhiteSpace(unlockConditionCoinTemplate)
+                ? "{0}金币"
+                : unlockConditionCoinTemplate;
+            parts.Add(string.Format(coinTemplate, Mathf.Max(0, unlockCoinCost)));
+        }
+
+        if (unlockLevel > 0)
+        {
+            var levelTemplate = string.IsNullOrWhiteSpace(unlockConditionLevelTemplate)
+                ? "通过第{0}关"
+                : unlockConditionLevelTemplate;
+            parts.Add(string.Format(levelTemplate, Mathf.Max(1, unlockLevel)));
+        }
+
+        var body = parts.Count > 0
+            ? string.Join(string.IsNullOrWhiteSpace(unlockConditionSeparator) ? "、" : unlockConditionSeparator, parts)
+            : (string.IsNullOrWhiteSpace(unlockConditionNoneText) ? "未配置解锁条件" : unlockConditionNoneText);
+        var prefix = string.IsNullOrWhiteSpace(unlockConditionPrefix) ? string.Empty : unlockConditionPrefix;
+        return prefix + body;
+    }
+
+    private void ApplyCatDetailUnlockButtonVisibility()
+    {
+        if (catDetailUnlockButton == null)
+        {
+            return;
+        }
+
+        var visible = !activeDetailUnlocked && activeDetailUnlockCoinCost > 0;
+        catDetailUnlockButton.gameObject.SetActive(visible);
+        if (visible)
+        {
+            ApplyButtonLabel(catDetailUnlockButton, catDetailUnlockButtonText);
+        }
+    }
+
+    private string GetEconomyCoinStorageKey()
+    {
+        return string.IsNullOrWhiteSpace(economyCoinSaveKey) ? "ShelfSpawn.Economy.Coin" : economyCoinSaveKey;
+    }
+
+    private bool TrySpendCoins(int amount)
+    {
+        var cost = Mathf.Max(0, amount);
+        if (cost <= 0)
+        {
+            return true;
+        }
+
+        if (TryResolveShelfSpawnManager(out var manager) && manager != null)
+        {
+            return manager.TrySpendCoins(cost);
+        }
+
+        var currentCoin = Mathf.Max(0, storageService != null ? storageService.GetInt(GetEconomyCoinStorageKey(), 0) : 0);
+        if (currentCoin < cost)
+        {
+            return false;
+        }
+
+        storageService.SetInt(GetEconomyCoinStorageKey(), Mathf.Max(0, currentCoin - cost));
+        storageService.Save();
+        return true;
+    }
+
+    private void RefundCoins(int amount)
+    {
+        var value = Mathf.Max(0, amount);
+        if (value <= 0)
+        {
+            return;
+        }
+
+        if (TryResolveShelfSpawnManager(out var manager) && manager != null)
+        {
+            manager.AddCoins(value);
+            return;
+        }
+
+        var currentCoin = Mathf.Max(0, storageService != null ? storageService.GetInt(GetEconomyCoinStorageKey(), 0) : 0);
+        storageService.SetInt(GetEconomyCoinStorageKey(), Mathf.Max(0, currentCoin + value));
+        storageService.Save();
+    }
+
+    private bool TryResolveShelfSpawnManager(out ShelfSpawnManager manager)
+    {
+        manager = shelfSpawnManager;
+        if (manager != null)
+        {
+            return true;
+        }
+
+        manager = FindObjectOfType<ShelfSpawnManager>(true);
+        shelfSpawnManager = manager;
+        return manager != null;
+    }
+
+    private string GetLevelProgressStorageKey()
+    {
+        return string.IsNullOrWhiteSpace(levelProgressSaveKey) ? "ShelfSpawn.Progress.CurrentLevelIndex" : levelProgressSaveKey;
+    }
+
+    private int GetCurrentProgressLevel()
+    {
+        return Mathf.Max(1, storageService != null ? storageService.GetInt(GetLevelProgressStorageKey(), 1) : 1);
+    }
+
+    private bool TryUnlockCatByCoinInternal(CatUnlockConfig targetCat, int targetIndex, int currentLevel, out int cost)
+    {
+        cost = 0;
+        if (targetCat == null)
+        {
+            return false;
+        }
+
+        var unlockedSet = GetUnlockedCatTokenSet();
+        if (targetIndex < 0 || targetIndex >= cats.Count || cats[targetIndex] != targetCat)
+        {
+            targetIndex = ResolveCatIndex(targetCat);
+        }
+
+        if (targetIndex < 0)
+        {
+            return false;
+        }
+
+        if (IsCatUnlocked(targetCat, targetIndex, unlockedSet))
+        {
+            return false;
+        }
+
+        if (!IsLevelRequirementSatisfied(targetCat, targetIndex, currentLevel))
+        {
+            return false;
+        }
+
+        cost = ResolveDisplayUnlockCoinCost(targetCat);
+        if (cost <= 0)
+        {
+            return false;
+        }
+
+        unlockedSet.Add(BuildCatUnlockToken(targetCat, targetIndex));
+        SaveUnlockedCatTokenSet(unlockedSet);
+        return true;
+    }
+
+    private int ResolveCatIndex(CatUnlockConfig targetCat)
+    {
+        if (cats == null || targetCat == null)
+        {
+            return -1;
+        }
+
+        for (var i = 0; i < cats.Count; i++)
+        {
+            if (ReferenceEquals(cats[i], targetCat))
+            {
+                return i;
+            }
+        }
+
+        for (var i = 0; i < cats.Count; i++)
+        {
+            var cat = cats[i];
+            if (cat == null)
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(cat.catId)
+                && !string.IsNullOrWhiteSpace(targetCat.catId)
+                && string.Equals(cat.catId, targetCat.catId, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private void ShowCoinUnlockFailedBubble(string message)
+    {
+        EnsureCoinUnlockFailedBubble();
+        if (coinUnlockFailedBubbleRoot == null)
+        {
+            return;
+        }
+
+        if (coinUnlockFailedBubbleRoutine != null)
+        {
+            StopCoroutine(coinUnlockFailedBubbleRoutine);
+            coinUnlockFailedBubbleRoutine = null;
+        }
+
+        if (coinUnlockFailedBubbleTextRef != null)
+        {
+            coinUnlockFailedBubbleTextRef.text = string.IsNullOrWhiteSpace(message)
+                ? "解锁失败"
+                : message;
+        }
+
+        coinUnlockFailedBubbleRoot.gameObject.SetActive(true);
+        coinUnlockFailedBubbleRoutine = StartCoroutine(HideCoinUnlockFailedBubbleRoutine(Mathf.Max(0.1f, coinUnlockFailedBubbleDuration)));
+    }
+
+    private IEnumerator HideCoinUnlockFailedBubbleRoutine(float duration)
+    {
+        yield return new WaitForSecondsRealtime(duration);
+        if (coinUnlockFailedBubbleRoot != null)
+        {
+            coinUnlockFailedBubbleRoot.gameObject.SetActive(false);
+        }
+
+        coinUnlockFailedBubbleRoutine = null;
+    }
+
+    private void EnsureCoinUnlockFailedBubble()
+    {
+        if (coinUnlockFailedBubbleRoot == null)
+        {
+            coinUnlockFailedBubbleRoot = coinUnlockFailedBubbleRootRef;
+        }
+
+        if (coinUnlockFailedBubbleTextRef == null)
+        {
+            coinUnlockFailedBubbleTextRef = coinUnlockFailedBubbleTextRefConfig;
+        }
+
+        if (coinUnlockFailedBubbleRoot != null && coinUnlockFailedBubbleTextRef == null)
+        {
+            coinUnlockFailedBubbleTextRef = coinUnlockFailedBubbleRoot.GetComponentInChildren<TMP_Text>(true);
+        }
+
+        if (coinUnlockFailedBubbleRoot != null)
+        {
+            return;
+        }
+    }
+
+    private Canvas ResolveUiCanvas()
+    {
+        if (catDetailPopupRoot != null)
+        {
+            var canvas = catDetailPopupRoot.GetComponentInParent<Canvas>(true);
+            if (canvas != null)
+            {
+                return canvas;
+            }
+        }
+
+        if (popupRoot != null)
+        {
+            var canvas = popupRoot.GetComponentInParent<Canvas>(true);
+            if (canvas != null)
+            {
+                return canvas;
+            }
+        }
+
+        return FindObjectOfType<Canvas>(true);
+    }
+
+    private static void ApplyButtonLabel(Button button, string textValue)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        var tmp = button.GetComponentInChildren<TMP_Text>(true);
+        if (tmp != null)
+        {
+            tmp.text = textValue;
+        }
     }
 
     private void EnsureItemPool(int targetCount)
@@ -519,9 +1180,7 @@ public class CatUnlockManager : MonoBehaviour
         var texts = itemGo.GetComponentsInChildren<TMP_Text>(true);
         if (texts != null && texts.Length > 0 && texts[0] != null)
         {
-            texts[0].text = unlocked
-                ? (string.IsNullOrWhiteSpace(catName) ? "未命名小猫" : catName)
-                : "未解锁";
+            texts[0].text = string.IsNullOrWhiteSpace(catName) ? "未命名小猫" : catName;
         }
     }
 
